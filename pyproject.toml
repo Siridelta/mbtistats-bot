@@ -1,0 +1,29 @@
+[project]
+name = "mbtistats-bot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = "==3.13.*"
+dependencies = [
+    "jinja2>=3.1.6",
+    "nonebot-adapter-console>=0.9.0",
+    "nonebot-adapter-qq>=1.6.6",
+    "nonebot2[fastapi,httpx]>=2.4.4",
+    "playwright>=1.56.0",
+]
+
+[tool.nonebot]
+plugin_dirs = ["mbtistats-bot/plugins"]
+builtin_plugins = ["echo", "single_session"]
+
+[tool.nonebot.adapters]
+nonebot-adapter-qq = [
+    { name = "QQ", module_name = "nonebot.adapters.qq" }
+]
+nonebot-adapter-console = [
+    { name = "Console", module_name = "nonebot.adapters.console" }
+]
+"@local" = []
+
+[tool.nonebot.plugins]
+"@local" = []
