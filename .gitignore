@@ -13,3 +13,9 @@ wheels/
 .env
 .env.*
 ! .env.example
+
+# Bot Data Cache
+data/
+
+# Preview HTML files
+**/preview.html

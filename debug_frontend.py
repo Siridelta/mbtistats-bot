@@ -34,14 +34,10 @@ def get_mock_data_trait():
         "group_name": "前端调试测试群",
         "total_count": 172, # 示例总数
         "data": {
-            "E": {"count": 51, "percent": 30},
-            "I": {"count": 121, "percent": 70},
-            "S": {"count": 39, "percent": 23},
-            "N": {"count": 133, "percent": 77},
-            "T": {"count": 80, "percent": 47},
-            "F": {"count": 92, "percent": 53},
-            "J": {"count": 59, "percent": 34},
-            "P": {"count": 113, "percent": 66}
+            "EI": {"E": 10, "I": 20, "X": 0},
+            "SN": {"S": 15, "N": 15, "X": 1},
+            "TF": {"T": 12, "F": 18, "X": 0},
+            "JP": {"J": 14, "P": 16, "X": 1}
         }
     }
 

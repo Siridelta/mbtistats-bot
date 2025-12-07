@@ -33,6 +33,16 @@
             color: #666;
             font-size: 14px;
             margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .sep {
+            width: 1px;
+            height: 14px;
+            background-color: #ccc;
+            margin: 2px 14px 0px;
+            display: inline-block;
         }
 
         #chart-container {
@@ -45,11 +55,21 @@
 <body style="height: 100%; margin: 0">
     <div class="container">
         <h1>{{ title }}</h1>
-        <div class="meta">统计范围: {{ group_name }} | 样本数: {{ total_count }} 人</div>
+        <div class="meta">
+            {{ group_name }}
+            <div class="sep"></div>
+            {{ total_count }} 人
+            <div class="sep"></div>
+            <span id="timestamp"></span>
+        </div>
         <div id="chart-container"></div>
     </div>
 
     <script type="text/javascript">
+        const date = new Date();
+        document.getElementById("timestamp").textContent = `
+            ${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${date.toLocaleTimeString()}
+        `;
         var dom = document.getElementById("chart-container");
         var myChart = echarts.init(dom);
         var option;
@@ -83,7 +103,7 @@
 
         // Jinja2 注入的数据
         // 原始数据形如: [{"name": "INTP", "value": 15}, ...]
-        let rawData = {{ data | tojson }};
+        const rawData = {{ data | tojson }};
 
         // 2. 数据预处理：注入颜色 itemStyle 并排序
         // 我们希望饼图扇区按照 mbtiConfig 的逻辑顺序排列 (分析家在一起, etc.)
@@ -132,7 +152,7 @@
                 // 第一段线 (length): 主要负责把标签“推”离饼图
                 // 第二段线 (length2): 主要负责横向对齐，小扇区需要更长的横向空间来错开
                 len1 = Math.max(15, 50 * Math.exp(-0.08 * percent));
-                len2 = Math.max(15, 50 * Math.exp(-0.08 * percent));
+                len2 = Math.max(15, 20 * Math.exp(-0.08 * percent));
             } else {
                 // 下方宽敞区：使用较短的线，保持紧凑
                 len1 = Math.max(15, 20 * Math.exp(-0.5 * percent));
@@ -157,11 +177,14 @@
             accumValue += item.value;
         });
 
-        // 2.3 (可选) 处理配置表中没有但原始数据里有的“未知类型”
+        // 2.3 (可选) 处理配置表中没有但原始数据里有的“模糊类型”
         rawData.forEach(item => {
             const type = item.name;
             if (colorMap[type]) return;
 
+            // "模糊类型"项为 0 时不显示
+            if (item.value === 0) return;
+            
             processedData.push({
                 ...item,
                 itemStyle: { color: defaultColor },
