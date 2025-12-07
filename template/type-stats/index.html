@@ -9,7 +9,7 @@
             margin: 0;
             padding: 20px;
             background-color: #f3f4f6;
-            font-family: "Microsoft YaHei", sans-serif;
+            font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;    /* 模拟生产端 docker 容器上装的 Noto Sans CJK 中文字体 */
         }
 
         .container {
@@ -18,7 +18,7 @@
             align-items: center;
             background: white;
             padding: 30px;
-            border-radius: 20px;
+            border-radius: 0px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             width: 1000px;
             height: 600px;
@@ -44,8 +44,8 @@
 
 <body style="height: 100%; margin: 0">
     <div class="container">
-        <h1>MBTI 类型分布统计 (开发预览)</h1>
-        <div class="meta">统计范围: 前端调试测试群 | 样本数: 174 人</div>
+        <h1>{{ title }}</h1>
+        <div class="meta">统计范围: {{ group_name }} | 样本数: {{ total_count }} 人</div>
         <div id="chart-container"></div>
     </div>
 
@@ -83,7 +83,7 @@
 
         // Jinja2 注入的数据
         // 原始数据形如: [{"name": "INTP", "value": 15}, ...]
-        let rawData = [{"name": "INFP", "value": 20}, {"name": "ENFP", "value": 18}, {"name": "INTP", "value": 15}, {"name": "ISFJ", "value": 14}, {"name": "ENTP", "value": 12}, {"name": "ESFJ", "value": 12}, {"name": "ESTJ", "value": 11}, {"name": "INFJ", "value": 10}, {"name": "\u6a21\u7cca\u7c7b\u578b", "value": 10}, {"name": "ISTJ", "value": 9}, {"name": "INTJ", "value": 8}, {"name": "ESFP", "value": 8}, {"name": "ENFJ", "value": 7}, {"name": "ISTP", "value": 6}, {"name": "ENTJ", "value": 5}, {"name": "ISFP", "value": 5}, {"name": "ESTP", "value": 4}];
+        let rawData = {{ data | tojson }};
 
         // 2. 数据预处理：注入颜色 itemStyle 并排序
         // 我们希望饼图扇区按照 mbtiConfig 的逻辑顺序排列 (分析家在一起, etc.)
@@ -116,7 +116,6 @@
             // 2. 计算中点角度 (ECharts startAngle=90, 顺时针为减)
             const _angle = 90 - (midValue / totalValue) * 360;
             const angle = (_angle + 360) % 360;
-            console.log(angle);
             
             // 动态线长策略 (连续算法):
             // 主要考虑两个因素：百分比是否很小，以及是否位于靠上的角度位置（靠下的角度位置 Echarts 的排布算法会工作的很好，不需要额外处理）。
@@ -179,6 +178,9 @@
 
         option = {
             backgroundColor: '#ffffff', // 确保背景白
+            textStyle: {
+                fontFamily: 'Noto Sans SC, Microsoft YaHei, sans-serif'
+            },
             tooltip: {
                 trigger: 'item',
                 formatter: '{b}: {c}人 ({d}%)' // 注意：bar 图默认没有 {d}，但我们可以通过 dataset 或者 function 来处理，这里先这样
@@ -279,7 +281,7 @@
                     },
                     barWidth: '60%',
                     itemStyle: {
-                        borderRadius: [0, 5, 5, 0] // 只有右边圆角
+                        borderRadius: [5, 5, 5, 5] // 四个圆角
                     }
                 }
             ]

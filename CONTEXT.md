@@ -20,7 +20,9 @@
 
 可以参考之前群友人工统计时用 Excel 表格出的图表示例：
 
-![群友人工统计时用 Excel 表格出的图表示例](./docs/QQ_Group_MBTI_Statistics_Example.png)
+![群友人工统计时用 Excel 表格出的图表示例 - 类型统计](./docs/QQ_Group_MBTI_Type_Stats_Example.png)
+
+![群友人工统计时用 Excel 表格出的图表示例 - 特质统计](./docs/QQ_Group_MBTI_Trait_Stats_Example.png)
 
 ## 2. 技术架构
 
@@ -59,10 +61,14 @@ uv run bot.py
 
 用于开发时预览前端模板文件的渲染效果。
 ```bash
-uv run debug_frontend.py
+uv run debug_frontend.py <mode>
+# <mode> 为：type-stats, trait-stats
+# 示例：
+uv run debug_frontend.py type-stats
+uv run debug_frontend.py trait-stats
 ```
 
-脚本将持续监听前端模板文件的变化，并自动使用 mock 数据渲染至 `template/preview.html` 文件。然后可以使用 Live Server 打开 `template/preview.html` 文件，实时预览渲染效果。
+脚本将持续监听前端模板文件 `template/<mode>/index.html` 的变化，并自动使用 mock 数据渲染至 `template/<mode>/preview.html` 文件。然后可以使用 IDE 的 Live Server 插件打开 `template/<mode>/preview.html` 文件，实时预览渲染效果。
 
 ## 5. Docker 部署工作流 (Cheat Sheet)
 
