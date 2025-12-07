@@ -2,7 +2,40 @@ import random
 from typing import List, cast
 from nonebot.adapters import Bot, Event
 from nonebot import logger
-from nonebot.adapters.qq.bot import Bot as QQBot
+from nonebot.adapters.qq.bot import (
+    Bot as QQBot, 
+    Event as QQEvent
+)
+from nonebot.adapters.qq.event import (
+    EventType as QQEventType,
+    GroupMsgReceiveEvent as QQGroupMsgReceiveEvent,
+)
+
+def get_group_id(bot: Bot, event: Event) -> str:
+    """
+    获取群 ID。
+    """
+    adapter_name = bot.adapter.get_name()
+
+    # --- 1. QQ 官方机器人环境 ---
+    if adapter_name == "QQ":
+        event = cast(QQEvent, event)
+        if event.__type__ == QQEventType.GROUP_MSG_RECEIVE:
+            event = cast(QQGroupMsgReceiveEvent, event)
+            return event.group_openid
+        else:
+            return None
+    
+    # --- 2. OneBot V11 环境 (如果未来迁移) ---
+    # if adapter_name == "OneBot V11":
+    #     bot = cast(OneBotV11Bot, bot)
+    #     return bot.get_group_id(event.group_id)
+
+    # --- 3. Console 环境模拟 (开发调试用) ---
+    if adapter_name == "Console":
+        return "Console_Group"
+
+    return None
 
 async def get_group_members(bot: Bot, event: Event) -> List[str]:
     """
@@ -27,7 +60,8 @@ async def get_group_members(bot: Bot, event: Event) -> List[str]:
             # 这里的实现仅为占位，实际上 result.members 里可能没有 nick
             logger.warning("⚠️ QQ 官方 Bot API 目前可能不支持直接拉取群成员昵称，无法进行统计。")
 
-            result = await bot.post_group_members(group_id=event.group_id, limit=400)
+            group_id = get_group_id(bot, event)
+            result = await bot.post_group_members(group_id=group_id, limit=400)
             return [m.nick for m in result.members if hasattr(m, 'nick')]
         except Exception as e:
             logger.error(f"获取QQ群成员失败: {e}")
@@ -44,16 +78,19 @@ def generate_mock_members(count: int = 200) -> List[str]:
     """
     生成模拟的群成员昵称列表，包含各种 MBTI 标注格式
     """
-    mbti_types = [
-        "ISTJ", "ISFJ", "INFJ", "INTJ",
-        "ISTP", "ISFP", "INFP", "INTP",
-        "ESTP", "ESFP", "ENFP", "ENTP",
-        "ESTJ", "ESFJ", "ENFJ", "ENTJ",
-        "istj", "isfj", "infj", "intj",
-        "istp", "isfp", "infp", "intp",
-        "estp", "esfp", "enfp", "entp",
-        "estj", "esfj", "enfj", "entj",
-    ]
+    
+    def generate_mbti_type() -> str:
+        mbti_type = ""
+        
+        x_p = 0.02
+        non_x_p = (1 - x_p) / 2
+        mbti_type += random.choices(["I", "E", "X"], k=1, weights=[non_x_p, non_x_p, x_p])[0]
+        mbti_type += random.choices(["S", "N", "X"], k=1, weights=[non_x_p, non_x_p, x_p])[0]
+        mbti_type += random.choices(["T", "F", "X"], k=1, weights=[non_x_p, non_x_p, x_p])[0]
+        mbti_type += random.choices(["J", "P", "X"], k=1, weights=[non_x_p, non_x_p, x_p])[0]
+
+        mbti_type = random.choice([mbti_type, mbti_type.lower()])
+        return mbti_type
     
     def generate_ops_label() -> str:
         # Function Pair
@@ -120,14 +157,13 @@ def generate_mock_members(count: int = 200) -> List[str]:
     
     mock_data = []
     for i in range(count):
-        mbti = random.choice(mbti_types)
         name = random.choice(names) + str(i)
         template = random.choice(templates)
 
         args = {
             "name": name,
-            "mbti": mbti,
             "i": i,
+            "mbti": generate_mbti_type(),
             "ops_label": generate_ops_label(),
         }
         nick = template.format(**args)

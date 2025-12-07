@@ -72,13 +72,6 @@ async def render_chart(
 
     # 2. 渲染 HTML 内容
     html_content = template.render(**data)
-    print(html_content)
-    print(data)
-    print(force_rerender)
-    print(data_cache_path)
-    print(img_cache_path)
-    print(width)
-    print(height)
 
     # 3. 启动浏览器截图
     async with async_playwright() as p:

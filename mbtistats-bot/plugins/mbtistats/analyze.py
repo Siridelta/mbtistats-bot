@@ -1,3 +1,4 @@
+from operator import xor
 import re
 from collections import Counter
 from typing import List, Dict, Tuple, Optional
@@ -5,14 +6,24 @@ from typing import List, Dict, Tuple, Optional
 # --- 正则定义 ---
 # 1. 通用 MBTI 4字母代码 (全大写/全小写，支持模糊 X)
 # 例如: INTP, esfp, ixxj, XNXX
-MBTI_REGEX = re.compile(r"([eix][nsx][tfx][pjx])", )
+MBTI_LOWER_REGEX = re.compile(r"(?:(?P<EI>[eix])(?P<SN>[nsx])(?P<TF>[tfx])(?P<JP>[pjx]))")
+MBTI_UPPER_REGEX = re.compile(r"(?:(?P<EI>[EIX])(?P<SN>[NSX])(?P<TF>[TFX])(?P<JP>[PJX]))")
 
 # 2. OPS 类型正则 (仅匹配其中的两主功能部分)
 # 例如: FF-Ti/Ne-CP/B(S) 中的 Ti/Ne 或 Ne/Ti
-# OPS 实际上比较复杂，这里先按简易逻辑：匹配 [TF][ie]/[NS][ie] 或 [NS][ie]/[TF][ie]
-OPS_REGEX = re.compile(r"([tf][ie]/[ns][ie]|[ns][ie]/[tf][ie])", re.IGNORECASE)
+OPS_DO_REGEX = re.compile(r"(?:(?P<D_TF>[TF])(?P<D_ei>[ie])/(?P<O_SN>[NS])(?P<O_ei>[ie]))")
+OPS_OD_REGEX = re.compile(r"(?:(?P<O_SN>[NS])(?P<O_ei>[ie])/(?P<D_TF>[TF])(?P<D_ei>[ie]))")
 
-def parse_mbti_from_text(text: str) -> Optional[str]:
+# MBTI 识别数据格式：
+# 集合用户声明的所有可能性，并反映成4维度上的单取值/双取值（模糊取值）。
+# {
+#   "EI": { "E": True, "I": False },
+#   "SN": { "S": True, "N": False },
+#   "TF": { "T": True, "F": False },
+#   "JP": { "J": True, "P": False },
+#   ...
+# }
+def parse_mbti_from_text(text: str) -> Optional[Dict[str, Dict[str, bool]]]:
     """
     从文本中解析 MBTI 类型。
     优先匹配标准 4 字母代码，其次尝试 OPS 代码。
@@ -20,23 +31,141 @@ def parse_mbti_from_text(text: str) -> Optional[str]:
     """
     if not text:
         return None
-        
+    
+    mbti_data = {
+        "EI": { "E": False, "I": False },
+        "SN": { "S": False, "N": False },
+        "TF": { "T": False, "F": False },
+        "JP": { "J": False, "P": False },
+    }
+    
     # 1. 尝试匹配标准 4 字母
-    match = MBTI_REGEX.search(text)
-    if match:
-        return match.group(1).upper()
+    
+    def handle_common_match(match: re.Match) -> None:
+        match match.group("EI").upper():
+            case "E":
+                mbti_data["EI"]["E"] = True
+            case "I":
+                mbti_data["EI"]["I"] = True
+            case "X":
+                mbti_data["EI"]["E"] = True
+                mbti_data["EI"]["I"] = True
+            case _:
+                raise Exception("Internal Error: Unexpcted Regex Match Result")
+        match match.group("SN").upper():
+            case "S":
+                mbti_data["SN"]["S"] = True
+            case "N":
+                mbti_data["SN"]["N"] = True
+            case "X":
+                mbti_data["SN"]["S"] = True
+                mbti_data["SN"]["N"] = True
+            case _:
+                raise Exception("Internal Error: Unexpcted Regex Match Result")
+        match match.group("TF").upper():
+            case "T":
+                mbti_data["TF"]["T"] = True
+            case "F":
+                mbti_data["TF"]["F"] = True
+            case "X":
+                mbti_data["TF"]["T"] = True
+                mbti_data["TF"]["F"] = True
+            case _:
+                raise Exception("Internal Error: Unexpcted Regex Match Result")
+        match match.group("JP").upper():
+            case "J":
+                mbti_data["JP"]["J"] = True
+            case "P":
+                mbti_data["JP"]["P"] = True
+            case "X":
+                mbti_data["JP"]["J"] = True
+                mbti_data["JP"]["P"] = True
+            case _:
+                raise Exception("Internal Error: Unexpcted Regex Match Result")
+
+    for match in MBTI_LOWER_REGEX.finditer(text):
+        handle_common_match(match)
+    for match in MBTI_UPPER_REGEX.finditer(text):
+        handle_common_match(match)
     
     # 2. 尝试匹配 OPS
-    match_ops = OPS_REGEX.search(text)
-    if match_ops:
-        # 返回匹配到的主功能对，例如 "Ti/Ne"
-        # 统一转为首字母大写格式 (例如 Ti/Ne)
-        raw = match_ops.group(1)
-        # 简单的格式化：全部大写或者保持原样? OPS 通常是 Ti/Ne 大小写混合
-        # 这里为了图表美观，暂时保持原样但确保首字母大写
-        return raw  
+
+    def handle_ops_match(match: re.Match, is_ops_DO: bool) -> None:
+        D_TF = match.group("D_TF")
+        D_ei = match.group("D_ei")
+        O_SN = match.group("O_SN")
+        O_ei = match.group("O_ei")
+        if not (D_TF and D_ei and O_SN and O_ei):
+            raise Exception("Internal Error: Unexpcted Regex Match Result")
+        
+        if is_ops_DO:   # Dx/Ox 类型
+
+            if D_TF == "T":
+                mbti_data["TF"]["T"] = True
+            elif D_TF == "F":
+                mbti_data["TF"]["F"] = True
+            else:
+                raise Exception("Internal Error: Unexpcted Regex Match Result")
+            
+            if D_ei == "e":
+                mbti_data["EI"]["E"] = True
+                mbti_data["JP"]["J"] = True
+            elif D_ei == "i":
+                mbti_data["EI"]["I"] = True
+                mbti_data["JP"]["P"] = True
+            else:   
+                raise Exception("Internal Error: Unexpcted Regex Match Result")
+            
+            if not (O_SN == "S" or O_SN == "N"):
+                raise Exception("Internal Error: Unexpcted Regex Match Result")
+            if not (O_ei == "e" or O_ei == "i"):
+                raise Exception("Internal Error: Unexpcted Regex Match Result")
+            # De/Oe 型, Di/Oi 型下 mbti 式的 NS 标记与 OPS 的 Ox 标记相反；De/Oi 型, Di/Oe 型下 mbti 式的 NS 标记与 OPS 的 Dx 标记相同。
+            invert_NS = (D_ei == "e" and O_ei == "e") or (D_ei == "i" and O_ei == "i")
+            if xor(O_SN == "S", invert_NS):
+                mbti_data["SN"]["S"] = True
+            else:
+                mbti_data["SN"]["N"] = True
+        
+        else:   # Ox/Dx 类型
+            if O_SN == "S":
+                mbti_data["SN"]["S"] = True
+            elif O_SN == "N":
+                mbti_data["SN"]["N"] = True
+            else:
+                raise Exception("Internal Error: Unexpcted Regex Match Result")
+
+            if O_ei == "e":
+                mbti_data["EI"]["E"] = True
+                mbti_data["JP"]["P"] = True
+            elif O_ei == "i":
+                mbti_data["EI"]["I"] = True
+                mbti_data["JP"]["J"] = True
+            else:
+                raise Exception("Internal Error: Unexpcted Regex Match Result")
+            
+            if not (D_TF == "T" or D_TF == "F"):
+                raise Exception("Internal Error: Unexpcted Regex Match Result")
+            if not (D_ei == "e" or D_ei == "i"):
+                raise Exception("Internal Error: Unexpcted Regex Match Result")
+            # Oe/De 型, Oi/Di 型下 mbti 式的 TF 标记与 OPS 的 Ox 标记相反；Oe/Di 型, Oi/De 型下 mbti 式的 TF 标记与 OPS 的 Dx 标记相同。
+            invert_TF = (O_ei == "e" and D_ei == "e") or (O_ei == "i" and D_ei == "i")
+            if xor(D_TF == "T", invert_TF):
+                mbti_data["TF"]["T"] = True
+            else:
+                mbti_data["TF"]["F"] = True
+
+    for match in OPS_DO_REGEX.finditer(text):
+        handle_ops_match(match, is_ops_DO=True)
+    for match in OPS_OD_REGEX.finditer(text):
+        handle_ops_match(match, is_ops_DO=False)
     
-    return None
+    # 3. 判断有有效结果的标准：各特质维度都至少有一个为 True
+    for trait_dim in mbti_data.keys():
+        if not any(mbti_data[trait_dim].values()):
+            return None
+
+    return mbti_data
 
 def analyze_type_stats(member_names: List[str]) -> Tuple[List[Dict], int]:
     """
@@ -49,17 +178,35 @@ def analyze_type_stats(member_names: List[str]) -> Tuple[List[Dict], int]:
         Tuple[List[Dict], int]: (ECharts 数据列表, 有效样本总数)
         数据列表格式: [{"name": "INTP", "value": 15}, ...]
     """
-    mbti_data = []
+
+    mbti_type_countsource = []
+    
+    def parse_mbti_typename(mbti_data: Dict[str, Dict[str, bool]]) -> str:
+        name = ""
+        for trait_dim in ["EI", "SN", "TF", "JP"]:  # 维度枚举, 按照正确顺序
+            valid_traits = [trait for trait, isValid in mbti_data[trait_dim].items() if isValid]
+            if len(valid_traits) == 0:
+                raise Exception("Internal Error: Unexpcted MBTI Data")
+            elif len(valid_traits) == 1:
+                name += valid_traits[0]
+            elif len(valid_traits) == 2:
+                name = 'fuzzy-type'
+                break
+            else:
+                raise Exception("Internal Error: Unexpcted MBTI Data")
+        return name
+    
     for name in member_names:
         mbti = parse_mbti_from_text(name)
-        if mbti:
-            mbti_data.append(mbti)
+        if not mbti:
+            continue
+        mbti_type_countsource.append(parse_mbti_typename(mbti))
             
-    total_count = len(mbti_data)
-    counts = Counter(mbti_data)
+    total_count = len(mbti_type_countsource)
+    counts = Counter(mbti_type_countsource)
     
     # 转换为 ECharts 格式
-    chart_data = [{"name": k, "value": v} for k, v in counts.items()]
+    chart_data = [{"name": k if k != 'fuzzy-type' else '模糊类型', "value": v} for k, v in counts.items()]
     # 按数量降序排序
     chart_data.sort(key=lambda x: x['value'], reverse=True)
     
@@ -81,11 +228,11 @@ def analyze_trait_stats(member_names: List[str]) -> Tuple[Dict[str, Dict[str, in
             "JP": {"J": 14, "P": 16, "X": 1}
         }
     """
-    traits = {
-        "EI": Counter(),
-        "SN": Counter(),
-        "TF": Counter(),
-        "JP": Counter()
+    result = {
+        "EI": {"E": 0, "I": 0, "X": 0},
+        "SN": {"S": 0, "N": 0, "X": 0},
+        "TF": {"T": 0, "F": 0, "X": 0},
+        "JP": {"J": 0, "P": 0, "X": 0}
     }
     
     valid_count = 0
@@ -96,26 +243,24 @@ def analyze_trait_stats(member_names: List[str]) -> Tuple[Dict[str, Dict[str, in
             continue
             
         valid_count += 1
-        
-        # mbti 字符串例如 "INTP" 或 "IXTP"
+
         # 维度 1: E/I/X
-        e_i = mbti[0]
-        traits["EI"][e_i] += 1
-        
+        result["EI"]["E"] += 1 if mbti["EI"]["E"] and not mbti["EI"]["I"] else 0
+        result["EI"]["I"] += 1 if mbti["EI"]["I"] and not mbti["EI"]["E"] else 0
+        result["EI"]["X"] += 1 if mbti["EI"]["E"] and mbti["EI"]["I"] else 0
         # 维度 2: S/N/X
-        s_n = mbti[1]
-        traits["SN"][s_n] += 1
-        
+        result["SN"]["S"] += 1 if mbti["SN"]["S"] and not mbti["SN"]["N"] else 0
+        result["SN"]["N"] += 1 if mbti["SN"]["N"] and not mbti["SN"]["S"] else 0
+        result["SN"]["X"] += 1 if mbti["SN"]["S"] and mbti["SN"]["N"] else 0
         # 维度 3: T/F/X
-        t_f = mbti[2]
-        traits["TF"][t_f] += 1
-        
+        result["TF"]["T"] += 1 if mbti["TF"]["T"] and not mbti["TF"]["F"] else 0
+        result["TF"]["F"] += 1 if mbti["TF"]["F"] and not mbti["TF"]["T"] else 0
+        result["TF"]["X"] += 1 if mbti["TF"]["T"] and mbti["TF"]["F"] else 0
         # 维度 4: J/P/X
-        j_p = mbti[3]
-        traits["JP"][j_p] += 1
-        
-    # 转换为普通字典返回
-    result = {k: dict(v) for k, v in traits.items()}
+        result["JP"]["J"] += 1 if mbti["JP"]["J"] and not mbti["JP"]["P"] else 0
+        result["JP"]["P"] += 1 if mbti["JP"]["P"] and not mbti["JP"]["J"] else 0
+        result["JP"]["X"] += 1 if mbti["JP"]["J"] and mbti["JP"]["P"] else 0
+    
     return result, valid_count
 
 def get_mock_data() -> Tuple[List[Dict], int]:
