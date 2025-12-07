@@ -55,7 +55,16 @@ uv run playwright install chromium
 uv run bot.py
 ```
 
-## 4. Docker 部署工作流 (Cheat Sheet)
+## 4. 前端模板文件开发预览
+
+用于开发时预览前端模板文件的渲染效果。
+```bash
+uv run debug_frontend.py
+```
+
+脚本将持续监听前端模板文件的变化，并自动使用 mock 数据渲染至 `template/preview.html` 文件。然后可以使用 Live Server 打开 `template/preview.html` 文件，实时预览渲染效果。
+
+## 5. Docker 部署工作流 (Cheat Sheet)
 
 ### 4.1 核心配置信息
 *   **Dockerfile**：已配置为基于 `python:3.13-slim`，集成 `uv` 和 `chromium`。
