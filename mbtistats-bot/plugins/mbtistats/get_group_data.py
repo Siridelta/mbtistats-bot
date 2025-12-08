@@ -1,14 +1,22 @@
 import random
-from typing import List, cast
+from typing import List, cast, Literal
 from nonebot.adapters import Bot, Event
 from nonebot import logger
 from nonebot.adapters.qq.bot import (
     Bot as QQBot, 
-    Event as QQEvent
 )
 from nonebot.adapters.qq.event import (
+    Event as QQEvent,
     EventType as QQEventType,
     GroupMsgReceiveEvent as QQGroupMsgReceiveEvent,
+)
+from nonebot.adapters.onebot.v11.bot import (
+    Bot as OneBotV11Bot,
+)
+from nonebot.adapters.onebot.v11.event import (
+    Event as OneBotV11Event,
+    MessageEvent as OneBotV11MessageEvent,
+    GroupMessageEvent as OneBotV11GroupMessageEvent,
 )
 
 def get_group_id(bot: Bot, event: Event) -> str:
@@ -26,16 +34,43 @@ def get_group_id(bot: Bot, event: Event) -> str:
         else:
             return None
     
-    # --- 2. OneBot V11 环境 (如果未来迁移) ---
-    # if adapter_name == "OneBot V11":
-    #     bot = cast(OneBotV11Bot, bot)
-    #     return bot.get_group_id(event.group_id)
+    # --- 2. OneBot V11 环境 ---
+    if adapter_name == "OneBot V11":
+        event = cast(OneBotV11Event, event)
 
+        if event.get_type() != "message":
+            return None
+        event = cast(OneBotV11MessageEvent, event)
+        
+        if event.message_type != "group":
+            return None
+        event = cast(OneBotV11GroupMessageEvent, event)
+
+        return str(event.group_id)
+        
     # --- 3. Console 环境模拟 (开发调试用) ---
     if adapter_name == "Console":
         return "Console_Group"
 
     return None
+
+async def get_group_name(id: str, bot: Bot) -> str:
+    """
+    获取群名称。
+    """
+    adapter_name = bot.adapter.get_name()
+
+    # --- 1. QQ 官方机器人环境 ---
+    if adapter_name == "QQ":
+        return "未知群名称"
+
+    # --- 2. OneBot V11 环境 ---
+    if adapter_name == "OneBot V11":
+        bot = cast(OneBotV11Bot, bot)
+        info = await bot.get_group_info(group_id=int(id), no_cache=True)
+        return info['group_name']
+
+    return "未知群名称"
 
 async def get_group_members(bot: Bot, event: Event) -> List[str]:
     """
@@ -67,10 +102,21 @@ async def get_group_members(bot: Bot, event: Event) -> List[str]:
             logger.error(f"获取QQ群成员失败: {e}")
             return []
 
-    # --- 3. OneBot V11 环境 (如果未来迁移) ---
-    # if adapter_name == "OneBot V11":
-    #     info = await bot.get_group_member_list(group_id=event.group_id)
-    #     return [m['card'] or m['nickname'] for m in info]
+    # --- 3. OneBot V11 环境 ---
+    if adapter_name == "OneBot V11":
+        bot = cast(OneBotV11Bot, bot)
+        event = cast(OneBotV11Event, event)
+        group_id = get_group_id(bot, event)
+        try:
+            # OneBot V11 获取群成员列表的标准 API
+            # no_cache=True 强制拉取最新数据
+            member_list = await bot.get_group_member_list(group_id=int(group_id), no_cache=True)
+            
+            # 优先使用群名片(card)，如果没有则使用昵称(nickname)
+            return [m['card'] or m['nickname'] for m in member_list]
+        except Exception as e:
+            logger.error(f"OneBot 获取群成员失败: {e}")
+            raise e
 
     return []
 

@@ -206,7 +206,11 @@ def analyze_type_stats(member_names: List[str]) -> Tuple[List[Dict], int]:
     counts = Counter(mbti_type_countsource)
     
     # 转换为 ECharts 格式
+    expected_names = ['INTP', 'INTJ', 'ENTP', 'ENTJ', 'INFP', 'INFJ', 'ENFP', 'ENFJ', 'ISTP', 'ISTJ', 'ESTP', 'ESTJ', 'ISFP', 'ISFJ', 'ESFP', 'ESFJ']
     chart_data = [{"name": k if k != 'fuzzy-type' else '模糊类型', "value": v} for k, v in counts.items()]
+    for name in expected_names:
+        if name not in counts:
+            chart_data.append({"name": name, "value": 0})
     # 按数量降序排序
     chart_data.sort(key=lambda x: x['value'], reverse=True)
     

@@ -55,6 +55,7 @@ async def render_chart(
                 logger.error(f"读取图像缓存失败: {e}")
         # 如果数据缓存和图像缓存都存在，并且数据相同，则直接返回图像缓存
         if data_cache and img_cache and data_cache == data:
+            logger.info(f"使用缓存: {img_cache_path}")
             return img_cache
 
     # 1. 准备模板环境

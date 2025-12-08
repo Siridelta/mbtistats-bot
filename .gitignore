@@ -13,6 +13,8 @@ wheels/
 .env
 .env.*
 ! .env.example
+! .env.qqbot.example
+! .env.onebotv11.example
 
 # Bot Data Cache
 data/

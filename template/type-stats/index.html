@@ -108,7 +108,7 @@
         // 2. 数据预处理：注入颜色 itemStyle 并排序
         // 我们希望饼图扇区按照 mbtiConfig 的逻辑顺序排列 (分析家在一起, etc.)
 
-        let processedData = [];
+        let pieData = [];
 
         // 2.1 先把原始数据转成 Map 方便查找
         // 形如：{"INTP": {"name": "INTP", "value": 15}, "INTJ": {"name": "INTJ", "value": 8}, ...}
@@ -169,7 +169,7 @@
             const item = dataMap[config.type];
             if (!item) return;
 
-            processedData.push({
+            pieData.push({
                 ...item,
                 itemStyle: { color: config.color },
                 labelLine: computeDynamicLine(item.value, accumValue) 
@@ -185,7 +185,7 @@
             // "模糊类型"项为 0 时不显示
             if (item.value === 0) return;
             
-            processedData.push({
+            pieData.push({
                 ...item,
                 itemStyle: { color: defaultColor },
                 labelLine: computeDynamicLine(item.value, accumValue)
@@ -196,8 +196,11 @@
         // 2. 数据处理：柱状图也需要数据
         // 柱状图通常按照数量排序，或者按照固定 MBTI 顺序排序
         // 这里我们按照 mbtiConfig 的固定顺序（分析家->外交家...）来排，方便对比
-        const barData = processedData; // 直接复用已排序好的数据
+        const barData = pieData; // 直接复用已排序好的数据
         const categories = barData.map(item => item.name);
+
+        // 2.1 去掉饼图数据中 value 为 0 的项
+        pieData = pieData.filter(item => item.value > 0);
 
         option = {
             backgroundColor: '#ffffff', // 确保背景白
@@ -288,7 +291,7 @@
                         length2: 20,
                         smooth: true
                     },
-                    data: processedData
+                    data: pieData
                 },
                 // --- 右侧柱状图 ---
                 {
