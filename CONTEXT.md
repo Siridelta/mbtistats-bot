@@ -52,9 +52,14 @@ uv sync
 # 2. 安装 Playwright 浏览器内核 (本地开发必做)
 uv run playwright install chromium
 
-# 3. 本地运行 Bot
+# 3. 安装 nb-cli
+uv tool install nb-cli
+
+# 4. 本地运行 Bot
 # 确保配置好 .env 文件中的 QQ_APP_ID 和 QQ_TOKEN
 uv run bot.py
+# 或者使用 nb-cli 运行
+nb run
 ```
 
 ## 4. 前端模板文件开发预览

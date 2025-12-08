@@ -1,5 +1,6 @@
 import json
 from nonebot import on_command, logger
+from nonebot.rule import to_me
 from nonebot.adapters import Bot, Event
 from nonebot.internal.matcher import Matcher
 
@@ -17,7 +18,7 @@ from .send_image import send_image
 # --- 命令定义 ---
 type_stats_cmd = on_command("类型统计", aliases={"mbti"}, priority=10, block=True)
 trait_stats_cmd = on_command("特质统计", aliases={"mbti-traits"}, priority=10, block=True)
-help_cmd = on_command("帮助", aliases={"help"}, priority=10, block=True)
+help_cmd = on_command("帮助", aliases={"help"}, rule=to_me(), priority=10, block=True)
 
 @help_cmd.handle()
 async def handle_help(bot: Bot, event: Event, matcher: Matcher):
