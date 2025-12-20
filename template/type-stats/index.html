@@ -9,7 +9,7 @@
             margin: 0;
             padding: 20px;
             background-color: #f3f4f6;
-            font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;    /* 模拟生产端 docker 容器上装的 Noto Sans CJK 中文字体 */
+            font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
         }
 
         .container {
@@ -21,7 +21,7 @@
             border-radius: 0px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             width: 1000px;
-            height: 600px;
+            height: 1350px;
         }
 
         h1 {
@@ -45,9 +45,54 @@
             display: inline-block;
         }
 
-        #chart-container {
+        .top-charts {
+            display: flex;
             width: 100%;
+            height: 550px;
+        }
+
+        #pie-chart-container {
+            width: 50%;
             height: 100%;
+        }
+
+        #bar-chart-container {
+            width: 50%;
+            height: 100%;
+        }
+
+        #trend-chart-container {
+            width: 100%;
+            height: 650px;
+            margin-top: 20px;
+        }
+        
+        #history-table-container {
+            width: 100%;
+            margin-top: 20px;
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            text-align: center;
+        }
+        
+        th {
+            background-color: #f2f2f2;
+            position: sticky;
+            top: 0;
+        }
+        
+        tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
         }
     </style>
 </head>
@@ -62,7 +107,12 @@
             <div class="sep"></div>
             <span id="timestamp"></span>
         </div>
-        <div id="chart-container"></div>
+        <div class="top-charts">
+            <div id="pie-chart-container"></div>
+            <div id="bar-chart-container"></div>
+        </div>
+        <div id="trend-chart-container"></div>
+        <div id="history-table-container"></div>
     </div>
 
     <script type="text/javascript">
@@ -70,9 +120,13 @@
         document.getElementById("timestamp").textContent = `
             ${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${date.toLocaleTimeString()}
         `;
-        var dom = document.getElementById("chart-container");
-        var myChart = echarts.init(dom);
-        var option;
+        var pieDom = document.getElementById("pie-chart-container");
+        var pieChart = echarts.init(pieDom);
+        var barDom = document.getElementById("bar-chart-container");
+        var barChart = echarts.init(barDom);
+        var trendDom = document.getElementById("trend-chart-container");
+        var trendChart = echarts.init(trendDom);
+        var tableContainer = document.getElementById("history-table-container");
 
         // 1. 定义 MBTI 颜色映射配置表 (保证顺序: 分析家 -> 外交家 -> 守护者 -> 探险家)
         // 使用数组形式以保留严格顺序
@@ -104,6 +158,7 @@
         // Jinja2 注入的数据
         // 原始数据形如: [{"name": "INTP", "value": 15}, ...]
         const rawData = {{ data | tojson }};
+        const historyData = {{ history_data | tojson }};
 
         // 2. 数据预处理：注入颜色 itemStyle 并排序
         // 我们希望饼图扇区按照 mbtiConfig 的逻辑顺序排列 (分析家在一起, etc.)
@@ -142,14 +197,14 @@
             // 使用指数衰减函数，让线长随百分比平滑减少
 
 
-            // 判断是否在“上方危险区” (大约 9点半 到 2点半)
+            // 判断是否在"上方危险区" (大约 9点半 到 2点半)
             // 12点=90度。我们设定范围：30度(2点) ~ 150度(10点) 为拥挤区
             const isTop = angle > 0 && angle < 180;
             let len1, len2;
 
             if (isTop) {
                 // 上方拥挤区：使用较长的线，且随百分比快速衰减（小扇区推远）
-                // 第一段线 (length): 主要负责把标签“推”离饼图
+                // 第一段线 (length): 主要负责把标签"推"离饼图
                 // 第二段线 (length2): 主要负责横向对齐，小扇区需要更长的横向空间来错开
                 len1 = Math.max(15, 50 * Math.exp(-0.08 * percent));
                 len2 = Math.max(15, 20 * Math.exp(-0.08 * percent));
@@ -177,7 +232,7 @@
             accumValue += item.value;
         });
 
-        // 2.3 (可选) 处理配置表中没有但原始数据里有的“模糊类型”
+        // 2.3 (可选) 处理配置表中没有但原始数据里有的"模糊类型"
         rawData.forEach(item => {
             const type = item.name;
             if (colorMap[type]) return;
@@ -202,53 +257,26 @@
         // 2.1 去掉饼图数据中 value 为 0 的项
         pieData = pieData.filter(item => item.value > 0);
 
-        option = {
-            backgroundColor: '#ffffff', // 确保背景白
+        // 饼图选项
+        const pieOption = {
+            backgroundColor: '#ffffff',
             textStyle: {
                 fontFamily: 'Noto Sans SC, Microsoft YaHei, sans-serif'
             },
+            title: {
+                text: '类型分布',
+                left: 'center'
+            },
             tooltip: {
                 trigger: 'item',
-                formatter: '{b}: {c}人 ({d}%)' // 注意：bar 图默认没有 {d}，但我们可以通过 dataset 或者 function 来处理，这里先这样
+                formatter: '{b}: {c}人 ({d}%)'
             },
-
-            // 3. 定义直角坐标系的位置 (用于柱状图)
-            grid: {
-                left: '60%',   // 饼图大概占左边 50%，这里从 55% 开始
-                right: '5%',   // 留点边距
-                top: '10%',
-                bottom: '10%',
-                containLabel: true // 防止标签溢出
-            },
-
-            // 4. 定义 X 轴 (数值轴)
-            xAxis: {
-                type: 'value',
-                boundaryGap: [0, 0.01],
-                splitLine: { show: false } // 去掉网格线，更干净
-            },
-
-            // 5. 定义 Y 轴 (类目轴)
-            yAxis: {
-                type: 'category',
-                data: categories,
-                inverse: true, // 让数组第一个元素 (INTJ) 显示在最上面
-                axisLine: { show: false }, // 去掉轴线
-                axisTick: { show: false }, // 去掉刻度
-                axisLabel: {
-                    fontSize: 14,
-                    fontWeight: 'bold',
-                    color: '#333' // 改回统一的深灰色，解决浅色文字在白底看不清的问题
-                }
-            },
-
             series: [
-                // --- 左侧饼图 ---
                 {
                     name: 'MBTI 分布',
                     type: 'pie',
-                    radius: ['5%', '65%'],
-                    center: ['28%', '50%'], // 饼图左移
+                    radius: ['30%', '70%'],
+                    center: ['50%', '55%'],
                     avoidLabelOverlap: true,
                     itemStyle: {
                         borderRadius: 5,
@@ -270,14 +298,14 @@
                         rich: {
                             title: {
                                 color: '#333',
-                                fontSize: 16,
+                                fontSize: 14,
                                 fontWeight: 'bold',
                                 align: 'center',
                                 padding: [5, 0]
                             },
                             sub: {
                                 color: '#666',
-                                fontSize: 14,
+                                fontSize: 12,
                                 align: 'center'
                             }
 
@@ -292,29 +320,205 @@
                         smooth: true
                     },
                     data: pieData
-                },
-                // --- 右侧柱状图 ---
+                }
+            ]
+        };
+
+        // 柱状图选项
+        const barOption = {
+            backgroundColor: '#ffffff',
+            textStyle: {
+                fontFamily: 'Noto Sans SC, Microsoft YaHei, sans-serif'
+            },
+            title: {
+                text: '类型统计',
+                left: 'center'
+            },
+            tooltip: {
+                trigger: 'item',
+                formatter: '{b}: {c}人'
+            },
+            grid: {
+                left: '15%',
+                right: '10%',
+                top: '20%',
+                bottom: '15%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'value',
+                boundaryGap: [0, 0.01],
+                splitLine: { show: false }
+            },
+            yAxis: {
+                type: 'category',
+                data: categories,
+                inverse: true,
+                axisLine: { show: false },
+                axisTick: { show: false },
+                axisLabel: {
+                    fontSize: 12,
+                    fontWeight: 'bold',
+                    color: '#333'
+                }
+            },
+            series: [
                 {
                     name: '人数统计',
                     type: 'bar',
                     data: barData,
-                    // 柱状图会自动继承 processedData 里的 itemStyle.color
                     label: {
                         show: true,
-                        position: 'right', // 数字显示在柱子右边
+                        position: 'right',
                         formatter: '{c}人',
                         color: '#666'
                     },
                     barWidth: '60%',
                     itemStyle: {
-                        borderRadius: [5, 5, 5, 5] // 四个圆角
+                        borderRadius: [5, 5, 5, 5]
                     }
                 }
             ]
         };
 
-        if (option && typeof option === "object") {
-            myChart.setOption(option);
+        // 设置图表选项
+        if (pieOption && typeof pieOption === "object") {
+            pieChart.setOption(pieOption);
+        }
+        
+        if (barOption && typeof barOption === "object") {
+            barChart.setOption(barOption);
+        }
+        
+        // 绘制历史趋势图（改为堆积柱状图）
+        if (historyData && historyData.length > 1) {
+            // 准备趋势图数据
+            const dates = historyData.map(record => {
+                const d = new Date(record.timestamp);
+                return `${d.getMonth()+1}-${d.getDate()}`;
+            });
+            
+            // 定义四色分类
+            const colorGroups = {
+                "分析家": ["INTJ", "INTP", "ENTJ", "ENTP"],
+                "外交家": ["INFJ", "INFP", "ENFJ", "ENFP"],
+                "守护者": ["ISTJ", "ISFJ", "ESTJ", "ESFJ"],
+                "探险家": ["ISTP", "ISFP", "ESTP", "ESFP"]
+            };
+            
+            // 为每个四色组合创建数据系列
+            const series = [];
+            Object.entries(colorGroups).forEach(([groupName, types]) => {
+                // 获取该组合在所有历史记录中的数值
+                const groupData = historyData.map(record => {
+                    return types.reduce((sum, type) => {
+                        const item = record.data.find(d => d.name === type);
+                        return sum + (item ? item.value : 0);
+                    }, 0);
+                });
+                
+                // 定义颜色
+                let color;
+                switch(groupName) {
+                    case "分析家": color = "#9b85c1"; break;
+                    case "外交家": color = "#70AD47"; break;
+                    case "守护者": color = "#2E75B6"; break;
+                    case "探险家": color = "#FFB703"; break;
+                    default: color = "#cccccc";
+                }
+                
+                series.push({
+                    name: groupName,
+                    type: 'bar',
+                    stack: '总量',
+                    data: groupData,
+                    itemStyle: { color: color },
+                    barGap: 0 // 相邻柱状条间距为0
+                });
+            });
+            
+            const trendOption = {
+                title: {
+                    text: '历史趋势',
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    }
+                },
+                legend: {
+                    type: 'scroll',
+                    bottom: 0,
+                    data: Object.keys(colorGroups),
+                    textStyle: {
+                        fontSize: 12
+                    }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: dates,
+                    axisLabel: {
+                        fontSize: 12
+                    }
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: series
+            };
+            
+            trendChart.setOption(trendOption);
+            
+            // 创建历史数据表格
+            createHistoryTable(historyData, colorGroups);
+        }
+        
+        // 创建历史数据表格
+        function createHistoryTable(historyData, colorGroups) {
+            if (!historyData || historyData.length <= 1) return;
+            
+            let tableHTML = '<table>';
+            
+            // 表头
+            tableHTML += '<thead><tr><th>日期</th>';
+            
+            // 添加所有类型列
+            const allTypes = [...new Set(historyData.flatMap(record => 
+                record.data.filter(item => item.value > 0).map(item => item.name)
+            ))].sort();
+            
+            allTypes.forEach(type => {
+                tableHTML += `<th>${type}</th>`;
+            });
+            
+            tableHTML += '</tr></thead><tbody>';
+            
+            // 数据行
+            historyData.forEach(record => {
+                const d = new Date(record.timestamp);
+                const dateStr = `${d.getMonth()+1}-${d.getDate()}`;
+                tableHTML += `<tr><td>${dateStr}</td>`;
+                
+                // 为每种类型添加数据
+                allTypes.forEach(type => {
+                    const item = record.data.find(d => d.name === type);
+                    const value = item ? item.value : 0;
+                    tableHTML += `<td>${value}</td>`;
+                });
+                
+                tableHTML += '</tr>';
+            });
+            
+            tableHTML += '</tbody></table>';
+            tableContainer.innerHTML = tableHTML;
         }
     </script>
 </body>

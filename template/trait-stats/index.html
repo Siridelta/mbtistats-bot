@@ -21,8 +21,9 @@
             padding: 40px;
             border-radius: 0px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            width: 600px;
+            width: 1000px;
             box-sizing: border-box;
+            height: 1350px;
         }
 
         h1 {
@@ -39,33 +40,57 @@
             margin-bottom: 20px;
         }
 
-        /* 列表布局 */
-        .charts-list {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            height: 520px;
-            justify-content: space-between; /* 均匀分布 */
-        }
-
-        .chart-item {
-            width: 100%;
-            flex: 1; /* 平分高度 */
-            /* 去除卡片样式，使其融入背景 */
-            background: transparent;
-            /* border-bottom: 1px solid #f0f0f0; */
-        }
-        
-        .chart-item:last-child {
-            border-bottom: none;
-        }
-
         .sep {
             width: 1px;
             height: 14px;
             background-color: #ccc;
             margin: 2px 14px 0px;
             display: inline-block;
+        }
+
+        .top-charts {
+            display: flex;
+            width: 100%;
+            height: 400px;
+        }
+
+        .chart-item {
+            width: 25%;
+            height: 100%;
+        }
+
+        #trend-chart-container {
+            width: 100%;
+            height: 650px;
+            margin-top: 20px;
+        }
+        
+        #history-table-container {
+            width: 100%;
+            margin-top: 20px;
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            text-align: center;
+        }
+        
+        th {
+            background-color: #f2f2f2;
+            position: sticky;
+            top: 0;
+        }
+        
+        tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
         }
     </style>
 </head>
@@ -81,12 +106,14 @@
             <span id="timestamp"></span>
         </div>
         
-        <div class="charts-list">
+        <div class="top-charts">
             <div id="chart-ei" class="chart-item"></div>
             <div id="chart-ns" class="chart-item"></div>
             <div id="chart-tf" class="chart-item"></div>
             <div id="chart-jp" class="chart-item"></div>
         </div>
+        <div id="trend-chart-container"></div>
+        <div id="history-table-container"></div>
     </div>
 
     <script type="text/javascript">
@@ -94,6 +121,7 @@
         document.getElementById("timestamp").textContent = `
             ${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${date.toLocaleTimeString()}
         `;
+        
         // Jinja2 数据注入
         // rawData 结构: 
         /*
@@ -105,6 +133,7 @@
         }
         */
         const rawData = {{ data | tojson }};
+        const historyData = {{ history_data | tojson }};
 
         // 4个维度的配置
         // 颜色灵感来自 16Personalities 风格，但为了可见性进行了调整
@@ -176,14 +205,11 @@
                 pieData.pop();
             }
             
-            // 条形图数据 (水平)
-            // 让我们把 Trait1 放在顶部。所以如果轴是标准的，数组应该是 [Trait2, Trait1]。
-            
-            const barData = [data2.count, data1.count]; 
-            const categories = [trait2, trait1];
-            const barColors = [cfg.colors[1], cfg.colors[0]];
-            
             const option = {
+                title: {
+                    text: cfg.rawKey,
+                    left: 'center'
+                },
                 textStyle: {
                     fontFamily: 'Noto Sans SC, Microsoft YaHei, sans-serif'
                 },
@@ -191,40 +217,12 @@
                     trigger: 'item',
                     formatter: '{b}: {c} ({d}%)'
                 },
-                // 调整 Grid 位置以适应左饼右条布局
-                grid: {
-                    left: '42%',  // 给左侧饼图留出空间
-                    right: '10%',   // 右侧留白
-                    top: '27%',
-                    bottom: '10%',
-                    // height: '50%',
-                    containLabel: true
-                },
-                xAxis: {
-                    type: 'value',
-                    show: false,
-                    splitLine: { show: false }
-                },
-                yAxis: {
-                    type: 'category',
-                    data: categories,
-                    axisLine: { show: false },
-                    axisTick: { show: false },
-                    axisLabel: {
-                        fontSize: 16,
-                        fontWeight: 'bold',
-                        color: '#555',
-                        margin: 15
-                    }
-                },
                 series: [
-                    // 饼图
                     {
                         name: 'Distribution',
                         type: 'pie',
-                        // 缩小饼图以容纳外部标签
-                        radius: ['0%', '50%'],
-                        center: ['19.5%', '50%'], // 位于左侧区域的中心
+                        radius: ['40%', '70%'],
+                        center: ['50%', '55%'],
                         avoidLabelOverlap: true,
                         itemStyle: {
                             borderRadius: 4,
@@ -233,7 +231,7 @@
                         },
                         label: {
                             show: true,
-                            position: 'outside', // 改为外部显示
+                            position: 'outside',
                             formatter: function (params) {
                                 const name = params.name;
                                 const percent = params.percent >= 1 ? params.percent.toFixed(0)
@@ -248,17 +246,17 @@
                             rich: {
                                 title: {
                                     color: '#333',
-                                    fontSize: 14,
+                                    fontSize: 12,
                                     fontWeight: 'bold',
                                 },
                                 weakTitle: {
                                     color: '#333',
-                                    fontSize: 14,
+                                    fontSize: 12,
                                     fontWeight: 'normal',
                                 },
                                 sub: {
                                     color: '#666',
-                                    fontSize: 12,
+                                    fontSize: 10,
                                     fontWeight: 'normal',
                                 }
                             }
@@ -271,42 +269,146 @@
                         emphasis: {
                             label: {
                                 show: true,
-                                fontSize: 16,
+                                fontSize: 14,
                                 fontWeight: 'bold'
                             }
                         },
                         data: pieData
-                    },
-                    // 条形图
-                    {
-                        type: 'bar',
-                        data: barData.map((val, idx) => ({
-                            value: val,
-                            itemStyle: {
-                                color: barColors[idx],
-                                borderRadius: [5, 5, 5, 5]
-                            }
-                        })),
-                        barWidth: 20,
-                        label: {
-                            show: true,
-                            position: 'right',
-                            formatter: '{c}',
-                            color: '#666',
-                            fontSize: 14,
-                            fontWeight: 'bold'
-                        },
-                        // 条形背景
-                        showBackground: true,
-                        backgroundStyle: {
-                            color: 'rgba(180, 180, 180, 0.1)',
-                            borderRadius: [5, 5, 5, 5]
-                        }
                     }
                 ]
             };
             
             myChart.setOption(option);
+        }
+        
+        // 绘制历史趋势图（改为堆积柱状图）
+        if (historyData && historyData.length > 1) {
+            const trendDom = document.getElementById("trend-chart-container");
+            const trendChart = echarts.init(trendDom);
+            
+            // 准备趋势图数据
+            const dates = historyData.map(record => {
+                const d = new Date(record.timestamp);
+                return `${d.getMonth()+1}-${d.getDate()}`;
+            });
+            
+            // 初始化各特质的数据数组
+            const traitSeriesData = {};
+            const traits = ['I', 'E', 'N', 'S', 'F', 'T', 'P', 'J', '未知'];
+            traits.forEach(trait => {
+                traitSeriesData[trait] = Array(historyData.length).fill(0);
+            });
+            
+            // 填充数据 - 按时间点和维度计算各特质占比
+            historyData.forEach((record, recordIndex) => {
+                const dimensions = ['EI', 'SN', 'TF', 'JP'];
+                
+                dimensions.forEach(dim => {
+                    const dimObj = record.data[dim];
+                    if (!dimObj) return;
+                    
+                    const total = Object.values(dimObj).reduce((sum, val) => sum + val, 0);
+                    if (total === 0) return;
+                    
+                    // 将每个特质的比例分配到对应数组
+                    Object.entries(dimObj).forEach(([rawTrait, count]) => {
+                        let trait;
+                        if (rawTrait === 'X') {
+                            trait = '未知';
+                        } else {
+                            trait = rawTrait;
+                        }
+                        
+                        if (traitSeriesData[trait]) {
+                            traitSeriesData[trait][recordIndex] += (count / total * 100);
+                        }
+                    });
+                });
+            });
+            
+            // 创建系列
+            const series = [];
+            const colorMap = {
+                'I': '#EEAB7E', 'E': '#8EBBE6',
+                'N': '#89D18B', 'S': '#FFD863',
+                'F': '#d4a5a5', 'T': '#9e9ac8',
+                'P': '#80b1d3', 'J': '#fdb462',
+                '未知': '#ccc'
+            };
+            
+            traits.forEach(trait => {
+                // 只添加有数据的系列
+                if (traitSeriesData[trait].some(val => val > 0)) {
+                    series.push({
+                        name: trait,
+                        type: 'bar',
+                        stack: '总量',
+                        barGap: '0%',
+                        data: traitSeriesData[trait].map(val => parseFloat(val.toFixed(1))),
+                        itemStyle: { color: colorMap[trait] }
+                    });
+                }
+            });
+            
+            const trendOption = {
+                title: {
+                    text: '历史趋势',
+                    left: 'center',
+                    textStyle: {
+                        fontSize: 16,
+                        fontWeight: 'bold'
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    },
+                    formatter: function (params) {
+                        let result = params[0].axisValueLabel + '<br/>';
+                        // 按系列值从大到小排序
+                        params.sort((a, b) => b.value - a.value);
+                        params.forEach(param => {
+                            if (param.value > 0) {
+                                result += `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${param.color};"></span>`;
+                                result += `${param.seriesName}: ${parseFloat(param.value).toFixed(1)}%<br/>`;
+                            }
+                        });
+                        return result;
+                    }
+                },
+                legend: {
+                    type: 'scroll',
+                    bottom: 0,
+                    data: traits.filter(trait => 
+                        traitSeriesData[trait].some(val => val > 0)
+                    ),
+                    textStyle: {
+                        fontSize: 10
+                    },
+                    itemWidth: 10,
+                    itemHeight: 10
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '25%', // 增加底部空间以容纳两行图例
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: dates
+                },
+                yAxis: {
+                    type: 'value',
+                    axisLabel: {
+                        formatter: '{value} %'
+                    }
+                },
+                series: series
+            };
+            
+            trendChart.setOption(trendOption);
         }
     </script>
 </body>
