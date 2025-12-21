@@ -82,18 +82,28 @@
     },
 
     // --- 历史趋势数据 ---
-    // 注意：这两个字段目前传入的是同一个"全量历史记录数组" (即上面第1节提到的 mbti-stats.json 的内容), 建议修改。
-    // 前端根据需要从中提取 type_data 或 trait_data
     "type_history_data": [
         {
             "timestamp": 1766297997000,
-            "type_data": [...],
-            "trait_data": {...},
+            "data": [                        // 类型分布历史趋势数据 (List[Dict]), 格式依据 mbti stats 数据: mbtiStats[i].type_data
+                {"name": "ESTP", "value": 20},
+                {"name": "INTP", "value": 16},
+                ...
+            ],
             ...
         },
         ...
     ],
-    "trait_history_data": [           // 同上
+    "trait_history_data": [
+        {
+            "timestamp": 1766297997000,
+            "data": {                       // 特质分布历史趋势数据 (Dict), 格式依据 mbti stats 数据: mbtiStats[i].trait_data
+                "EI": {"E": 104, "I": 107, "X": 2},
+                "SN": {"S": 109, "N": 103, "X": 1},
+                ...
+            },
+            ...
+        },
         ...
     ]
 }
