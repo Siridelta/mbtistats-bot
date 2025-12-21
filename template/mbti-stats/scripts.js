@@ -898,7 +898,7 @@ function createTraitHistoryTable(historyData) {
         
         // 为每个维度和特质添加数据
         allDimensions.forEach(dim => {
-            const dimData = (record.trait_data || {})[dim] || {};
+            const dimData = record.data[dim] || {};
             allTraits[dim].forEach(trait => {
                 const value = dimData[trait] || 0;
                 tableHTML += `<td>${value}</td>`;
