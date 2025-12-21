@@ -6,7 +6,7 @@
 
 这个数据是能构成时间序列/历史记录的结构化数据。mbti-stats 时间点数据里除去 timestamp 等字段外，其等价性是机器人判断时间点数据是否发生变化的依据，如果 mbti 统计数据没有变化则使用缓存图片而不渲染新图。
 
-`data/cache-charts/{{ group_id }}/mbti-stats.json` 里存储时间序列数据。
+`data/v1/cache-charts/{{ group_id }}/mbti-stats.json` 里存储时间序列数据。
 
 时间点数据示例：
 ```js

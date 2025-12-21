@@ -196,8 +196,9 @@ docker push $TCR_URL:$VERSION
 │   │   └── scripts.js  # 脚本 (被 index.html 内联引用)
 │   └── ...
 └── data/               # 运行时数据
-    └── cache-charts/   # 图片缓存 & 数据缓存
-        └── {{ group_id }}/ # 按群组 ID 缓存
-            ├── mbti-stats.png # 图片缓存
-            └── mbti-stats.json # 数据缓存
+    └── v1/
+        └── cache-charts/   # 图片缓存 & 数据缓存
+            └── {{ group_id }}/ # 按群组 ID 缓存
+                ├── mbti-stats.png # 图片缓存
+                └── mbti-stats.json # 数据缓存
 ```

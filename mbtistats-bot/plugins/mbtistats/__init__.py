@@ -72,9 +72,9 @@ async def handle_mbti_stats(bot: Bot, event: Event, matcher: Matcher):
     # 2. 判断与更新历史数据
     image_bytes = None
 
-    img_cache_path = f"data/cache-charts/{group_id}/mbti-stats.png"
+    img_cache_path = f"data/v1/cache-charts/{group_id}/mbti-stats.png"
     # 统一使用 mbti-stats.json 作为历史记录和数据源
-    data_cache_path = f"data/cache-charts/{group_id}/mbti-stats.json"
+    data_cache_path = f"data/v1/cache-charts/{group_id}/mbti-stats.json"
     
     # 加载历史数据 (现在是 List 结构)
     history_data = []
