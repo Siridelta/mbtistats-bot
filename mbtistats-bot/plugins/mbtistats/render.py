@@ -10,14 +10,38 @@ TEMPLATE_ROOT = \
     Path(__file__).parent.parent.parent.parent \
     / "template"
 
+async def use_cache(
+    img_cache_path: str,
+) -> Optional[bytes]:
+    """
+    使用缓存图片。
+    如果缓存不存在则返回 None。
+    """
+    if not Path(img_cache_path).exists():
+        return None
+    with open(img_cache_path, "rb") as f:
+        img_cache = f.read()
+    return img_cache
+
+async def write_cache(
+    img_cache_path: str,
+    img_cache: bytes,
+) -> None:
+    """
+    写入缓存图片。
+    """
+    try:
+        Path(img_cache_path).parent.mkdir(parents=True, exist_ok=True)
+        with open(img_cache_path, "wb") as f:
+            f.write(img_cache)
+    except Exception as e:
+        logger.error(f"写入缓存图片失败: {e}")
+
 async def render_chart(
     template_name: str, 
     data: Dict[str, Any], 
     width: int = 1080, 
     height: int = 1080,
-    img_cache_path: Optional[str] = None,
-    data_cache_path: Optional[str] = None,
-    force_rerender: bool = False,
 ) -> bytes:
     """
     使用 Playwright 渲染 HTML 模板并截图。
@@ -27,36 +51,9 @@ async def render_chart(
         data: 传递给 Jinja2 模板的上下文数据
         width: 视口宽度
         height: 视口高度
-        img_cache_path: 缓存路径，例如 "data/cache-charts/123456789/type-stats.png"，如果为 None，则不缓存
-        data_cache_path: 数据缓存路径，例如 "data/cache-charts/123456789/type-stats.json"，如果为 None，则不缓存
-        force_rerender: 是否强制重新缓存，如果为 True，则不使用缓存，并在 img_cache_path 参数存在时重新写入缓存；否则优先复用缓存
     Returns:
         bytes: 图片的二进制数据
     """
-    
-    # 0. 缓存检查与复用
-    # 读取统计数据缓存，和 data 比对，如果相同则直接返回图像缓存。
-    if not force_rerender:
-        # 读取数据缓存
-        data_cache = None
-        if data_cache_path and Path(data_cache_path).exists():
-            try:
-                with open(data_cache_path, "r", encoding="utf-8") as f:
-                    data_cache = json.load(f)
-            except Exception as e:
-                logger.error(f"读取数据缓存失败: {e}")
-        # 读取图像缓存
-        img_cache = None
-        if img_cache_path and Path(img_cache_path).exists():
-            try:
-                with open(img_cache_path, "rb") as f:
-                    img_cache = f.read()
-            except Exception as e:
-                logger.error(f"读取图像缓存失败: {e}")
-        # 如果数据缓存和图像缓存都存在，并且数据相同，则直接返回图像缓存
-        if data_cache and img_cache and data_cache == data:
-            logger.info(f"使用缓存: {img_cache_path}")
-            return img_cache
 
     # 1. 准备模板环境
     # 我们将 TEMPLATE_ROOT 设为 searchpath，这样 template_name 可以是相对路径
@@ -107,9 +104,9 @@ async def render_chart(
             # 截图
             # 优先截取 .container，如果没找到则截全屏
             if await page.locator(".container").count() > 0:
-                screenshot = await page.locator(".container").screenshot(type="png", path=img_cache_path)
+                screenshot = await page.locator(".container").screenshot(type="png")
             else:
-                screenshot = await page.screenshot(type="png", full_page=True, path=img_cache_path)
+                screenshot = await page.screenshot(type="png", full_page=True)
                 
             await browser.close()
             return screenshot

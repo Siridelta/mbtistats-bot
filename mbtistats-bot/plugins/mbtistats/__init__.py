@@ -13,7 +13,7 @@ from .analyze import (
     get_mock_data, 
     get_mock_trait_data
 )
-from .render import render_chart
+from .render import render_chart, use_cache, write_cache
 from .get_group_data import get_group_members, get_group_id, get_group_name
 from .send_image import send_image
 
@@ -69,31 +69,86 @@ async def handle_mbti_stats(bot: Bot, event: Event, matcher: Matcher):
     
     group_name = await get_group_name(group_id, bot)
 
-    # 2. 渲染图片
+    # 2. 判断与更新历史数据
     image_bytes = None
 
     img_cache_path = f"data/cache-charts/{group_id}/mbti-stats.png"
+    # 统一使用 mbti-stats.json 作为历史记录和数据源
     data_cache_path = f"data/cache-charts/{group_id}/mbti-stats.json"
-    type_history_data_path = f"data/history-charts/{group_id}/type-stats-history.json"
-    trait_history_data_path = f"data/history-charts/{group_id}/trait-stats-history.json"
     
-    # 加载历史数据
-    type_history_data = []
-    if Path(type_history_data_path).exists():
+    # 加载历史数据 (现在是 List 结构)
+    history_data = []
+    if Path(data_cache_path).exists():
         try:
-            with open(type_history_data_path, "r", encoding="utf-8") as f:
-                type_history_data = json.load(f)
+            with open(data_cache_path, "r", encoding="utf-8") as f:
+                content = json.load(f)
+                if isinstance(content, list):
+                    history_data = content
+                else:
+                    # 兼容旧格式或空文件，初始化为空列表
+                    history_data = []
         except Exception as e:
-            logger.warning(f"读取类型历史数据失败: {e}")
+            logger.warning(f"读取历史数据失败: {e}")
+            history_data = []
     
-    trait_history_data = []
-    if Path(trait_history_data_path).exists():
+    # 构造当前数据记录
+    import time
+    current_record = {
+        "timestamp": int(time.time() * 1000),
+        "group_name": group_name,
+        "total_count": type_total_count,
+        "type_data": type_chart_data,
+        "trait_data": trait_chart_data
+    }
+    
+    # 对比最后一条历史数据，决定是否追加
+    # 为了避免重复记录（比如短时间内重复触发），判断数据是否完全一致，timestamp 字段除外
+    data_updated = False
+    if history_data:
+        last_record = history_data[-1]
+
+        last_compare_data = last_record.copy()
+        last_compare_data.pop("timestamp")
+
+        current_compare_data = current_record.copy()
+        current_compare_data.pop("timestamp")
+
+        if last_compare_data != current_compare_data:
+            data_updated = True
+    else:
+        data_updated = True
+    
+    if data_updated:
+        history_data.append(current_record)
+        # 可选：限制历史记录长度，例如保留最近 100 条
+        if len(history_data) > 100:
+            history_data = history_data[-100:]
         try:
-            with open(trait_history_data_path, "r", encoding="utf-8") as f:
-                trait_history_data = json.load(f)
+            # 确保目录存在
+            Path(data_cache_path).parent.mkdir(parents=True, exist_ok=True)
+            with open(data_cache_path, "w", encoding="utf-8") as f:
+                json.dump(history_data, f, ensure_ascii=False, indent=4)
         except Exception as e:
-            logger.warning(f"读取特质历史数据失败: {e}")
-    
+            logger.error(f"写入数据缓存失败: {e}")
+            await matcher.finish(f"❌ 写入数据缓存失败: {e}")
+            return
+
+    # 3. 准备渲染数据
+    # 注意：history_data 包含了所有历史，包括刚刚可能追加的当前数据
+    type_history_data = [
+        {
+            "timestamp": record["timestamp"],
+            "data": record["type_data"]
+        }
+        for record in history_data
+    ]
+    trait_history_data = [
+        {
+            "timestamp": record["timestamp"],
+            "data": record["trait_data"]
+        }
+        for record in history_data
+    ]
     data = {
         "title": "MBTI 类型与特质分布统计",
         "group_name": group_name,
@@ -104,68 +159,32 @@ async def handle_mbti_stats(bot: Bot, event: Event, matcher: Matcher):
         "trait_history_data": trait_history_data
     }
     
+    # 4. 渲染图片
     try:
-        image_bytes = await render_chart(
-            template_name="mbti-stats/index.html",
-            data=data,
-            width=1050,
-            height=2500,  # 增加高度以容纳所有内容
-            img_cache_path=img_cache_path,
-            data_cache_path=data_cache_path,
-            force_rerender=isDebug    # 如果调试模式，则强制重新缓存；否则优先复用缓存
-        )
+        if data_updated:
+            image_bytes = await render_chart(
+                template_name="mbti-stats/index.html",
+                data=data,
+                width=1050,
+                height=2500,  # 增加高度以容纳所有内容
+            )
+            await write_cache(img_cache_path, image_bytes)
+        else:
+            _image_bytes = await use_cache(img_cache_path)
+            if _image_bytes is None:
+                _image_bytes = await render_chart(
+                    template_name="mbti-stats/index.html",
+                    data=data,
+                    width=1050,
+                    height=2500,  # 增加高度以容纳所有内容
+                )
+                await write_cache(img_cache_path, _image_bytes)
+            image_bytes = _image_bytes
     except Exception as e:
         logger.exception("图表生成失败")
         await matcher.finish(f"❌ 图表生成失败: {e}")
         return
-    
-    # 3. 写入数据缓存和历史数据
-    with open(data_cache_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
-    
-    # 保存类型历史数据
-    try:
-        # 确保目录存在
-        Path(type_history_data_path).parent.mkdir(parents=True, exist_ok=True)
-        
-        # 添加当前数据到历史记录
-        current_record = {
-            "timestamp": datetime.now().isoformat(),
-            "data": type_chart_data,
-            "total_count": type_total_count
-        }
-        
-        # 保留最多50条历史记录
-        type_history_data.append(current_record)
-        if len(type_history_data) > 50:
-            type_history_data = type_history_data[-50:]
-        
-        with open(type_history_data_path, "w", encoding="utf-8") as f:
-            json.dump(type_history_data, f, ensure_ascii=False, indent=4)
-    except Exception as e:
-        logger.warning(f"保存类型历史数据失败: {e}")
-    
-    # 保存特质历史数据
-    try:
-        # 确保目录存在
-        Path(trait_history_data_path).parent.mkdir(parents=True, exist_ok=True)
-        
-        # 添加当前数据到历史记录
-        current_record = {
-            "timestamp": datetime.now().isoformat(),
-            "data": trait_chart_data,
-            "total_count": trait_total_count
-        }
-        
-        # 保留最多50条历史记录
-        trait_history_data.append(current_record)
-        if len(trait_history_data) > 50:
-            trait_history_data = trait_history_data[-50:]
-        
-        with open(trait_history_data_path, "w", encoding="utf-8") as f:
-            json.dump(trait_history_data, f, ensure_ascii=False, indent=4)
-    except Exception as e:
-        logger.warning(f"保存特质历史数据失败: {e}")
 
-    # 4. 发送图片
+
+    # 5. 发送图片
     await send_image(bot, matcher, image_bytes)

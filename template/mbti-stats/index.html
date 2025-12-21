@@ -63,6 +63,13 @@
             <div id="trait-history-table-container"></div>
         </div>
     </div>
+    <script>
+        // Jinja2 注入的数据
+        var _typeRawData = {{ type_data | tojson }};
+        var _traitRawData = {{ trait_data | tojson }};
+        var _typeHistoryData = {{ type_history_data | tojson }};
+        var _traitHistoryData = {{ trait_history_data | tojson }};
+    </script>
     <script src="scripts.js"></script>
 </body>
 

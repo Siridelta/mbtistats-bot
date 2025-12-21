@@ -3,6 +3,19 @@ document.getElementById("timestamp").textContent = `
     ${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${date.toLocaleTimeString()}
 `;
 
+// 全局变量
+var _typeRawData;
+var _traitRawData;
+var _typeHistoryData;
+var _traitHistoryData;
+var echarts;
+
+// 注入的数据
+const typeRawData = _typeRawData;
+const traitRawData = _traitRawData;
+const typeHistoryData = _typeHistoryData;
+const traitHistoryData = _traitHistoryData;
+
 // 类型统计图表
 var pieDom = document.getElementById("pie-chart-container");
 var pieChart = echarts.init(pieDom);
@@ -52,12 +65,7 @@ const colorMap = mbtiConfig.reduce((acc, item) => {
 // 默认颜色，面向模糊类型
 const defaultColor = "#cccccc";
 
-// Jinja2 注入的数据
-// 原始数据形如: [{"name": "INTP", "value": 15}, ...]
-const typeRawData = [{"name": "INTP", "value": 15}, {"name": "ENTP", "value": 12}, {"name": "INTJ", "value": 10}, {"name": "ENTJ", "value": 8}, {"name": "INFP", "value": 18}, {"name": "ENFP", "value": 20}, {"name": "INFJ", "value": 7}, {"name": "ENFJ", "value": 5}, {"name": "ISTJ", "value": 6}, {"name": "ESTJ", "value": 4}, {"name": "ISFJ", "value": 3}, {"name": "ESFJ", "value": 2}, {"name": "ISTP", "value": 4}, {"name": "ESTP", "value": 3}, {"name": "ISFP", "value": 2}, {"name": "ESFP", "value": 1}];
-const typeHistoryData = [{"timestamp": "2025-12-15T00:00:00", "data": [{"name": "INTP", "value": 10}, {"name": "ENTP", "value": 8}, {"name": "INTJ", "value": 7}, {"name": "ENTJ", "value": 5}, {"name": "INFP", "value": 12}, {"name": "ENFP", "value": 15}, {"name": "INFJ", "value": 5}, {"name": "ENFJ", "value": 3}, {"name": "ISTJ", "value": 4}, {"name": "ESTJ", "value": 2}, {"name": "ISFJ", "value": 2}, {"name": "ESFJ", "value": 1}, {"name": "ISTP", "value": 3}, {"name": "ESTP", "value": 2}, {"name": "ISFP", "value": 1}, {"name": "ESFP", "value": 1}]}, {"timestamp": "2025-12-16T00:00:00", "data": [{"name": "INTP", "value": 12}, {"name": "ENTP", "value": 10}, {"name": "INTJ", "value": 8}, {"name": "ENTJ", "value": 6}, {"name": "INFP", "value": 15}, {"name": "ENFP", "value": 18}, {"name": "INFJ", "value": 6}, {"name": "ENFJ", "value": 4}, {"name": "ISTJ", "value": 5}, {"name": "ESTJ", "value": 3}, {"name": "ISFJ", "value": 2}, {"name": "ESFJ", "value": 2}, {"name": "ISTP", "value": 3}, {"name": "ESTP", "value": 2}, {"name": "ISFP", "value": 2}, {"name": "ESFP", "value": 1}]}, {"timestamp": "2025-12-17T00:00:00", "data": [{"name": "INTP", "value": 13}, {"name": "ENTP", "value": 11}, {"name": "INTJ", "value": 9}, {"name": "ENTJ", "value": 7}, {"name": "INFP", "value": 16}, {"name": "ENFP", "value": 19}, {"name": "INFJ", "value": 7}, {"name": "ENFJ", "value": 5}, {"name": "ISTJ", "value": 5}, {"name": "ESTJ", "value": 4}, {"name": "ISFJ", "value": 3}, {"name": "ESFJ", "value": 2}, {"name": "ISTP", "value": 4}, {"name": "ESTP", "value": 3}, {"name": "ISFP", "value": 2}, {"name": "ESFP", "value": 1}]}, {"timestamp": "2025-12-18T00:00:00", "data": [{"name": "INTP", "value": 15}, {"name": "ENTP", "value": 12}, {"name": "INTJ", "value": 10}, {"name": "ENTJ", "value": 8}, {"name": "INFP", "value": 18}, {"name": "ENFP", "value": 20}, {"name": "INFJ", "value": 7}, {"name": "ENFJ", "value": 5}, {"name": "ISTJ", "value": 6}, {"name": "ESTJ", "value": 4}, {"name": "ISFJ", "value": 3}, {"name": "ESFJ", "value": 2}, {"name": "ISTP", "value": 4}, {"name": "ESTP", "value": 3}, {"name": "ISFP", "value": 2}, {"name": "ESFP", "value": 1}]}];
-const traitRawData = {"EI": {"I": 50, "E": 45, "X": 5}, "SN": {"N": 70, "S": 25, "X": 5}, "TF": {"F": 60, "T": 35, "X": 5}, "JP": {"P": 65, "J": 30, "X": 5}};
-const traitHistoryData = [{"timestamp": "2025-12-15T00:00:00", "data": {"EI": {"I": 40, "E": 35, "X": 5}, "SN": {"N": 60, "S": 20, "X": 5}, "TF": {"F": 50, "T": 30, "X": 5}, "JP": {"P": 55, "J": 25, "X": 5}}}, {"timestamp": "2025-12-16T00:00:00", "data": {"EI": {"I": 45, "E": 40, "X": 5}, "SN": {"N": 65, "S": 20, "X": 5}, "TF": {"F": 55, "T": 30, "X": 5}, "JP": {"P": 60, "J": 25, "X": 5}}}, {"timestamp": "2025-12-17T00:00:00", "data": {"EI": {"I": 48, "E": 42, "X": 5}, "SN": {"N": 68, "S": 22, "X": 5}, "TF": {"F": 58, "T": 32, "X": 5}, "JP": {"P": 62, "J": 28, "X": 5}}}, {"timestamp": "2025-12-18T00:00:00", "data": {"EI": {"I": 50, "E": 45, "X": 5}, "SN": {"N": 70, "S": 25, "X": 5}, "TF": {"F": 60, "T": 35, "X": 5}, "JP": {"P": 65, "J": 30, "X": 5}}}];
+
 
 // 动态获取人数最多的人格类型并显示图片和文字说明
 function displayTopPersonality() {

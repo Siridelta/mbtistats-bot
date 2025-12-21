@@ -1,163 +1,186 @@
 import argparse
 import time
+import json
+import sys
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
-# --- 1. 准备模拟数据 ---
+# 配置
+TEMPLATE_DIR_NAME = "template"
+MOCK_FILE_NAME = "mock.json"
+INDEX_FILE_NAME = "index.html"
+PREVIEW_FILE_NAME = "preview.html"
 
-# 旧版数据
-def get_mock_data_type():
-    data = [
-        {"name": "INTP", "value": 15}, {"name": "INTJ", "value": 8},
-        {"name": "ENTP", "value": 12}, {"name": "ENTJ", "value": 5},
-        {"name": "INFP", "value": 20}, {"name": "INFJ", "value": 10},
-        {"name": "ENFP", "value": 18}, {"name": "ENFJ", "value": 7},
-        {"name": "ISTP", "value": 6},  {"name": "ISTJ", "value": 9},
-        {"name": "ESTP", "value": 4},  {"name": "ESTJ", "value": 11},
-        {"name": "ISFP", "value": 5},  {"name": "ISFJ", "value": 14},
-        {"name": "ESFP", "value": 8},  {"name": "ESFJ", "value": 12},
-        {"name": "模糊类型", "value": 10}
-    ]
-    # 按 value 从大到小排序
-    data.sort(key=lambda x: x['value'], reverse=True)
-    return {
-        "title": "MBTI 类型分布统计 (开发预览)",
-        "group_name": "前端调试测试群",
-        "total_count": sum(item['value'] for item in data),
-        "data": data
-    }
-
-def get_mock_data_trait():
-    # 模拟特质统计数据
-    # 格式参考：E/I, S/N, T/F, J/P 的分布
-    return {
-        "title": "MBTI 特质分布统计 (开发预览)",
-        "group_name": "前端调试测试群",
-        "total_count": 172, # 示例总数
-        "data": {
-            "EI": {"E": 10, "I": 20, "X": 0},
-            "SN": {"S": 15, "N": 15, "X": 1},
-            "TF": {"T": 12, "F": 18, "X": 0},
-            "JP": {"J": 14, "P": 16, "X": 1}
-        }
-    }
-
-# 新版合一数据
-def get_mock_data_mbti():
-    return {
-        "title": "MBTI 类型与特质分布统计 (开发预览)",
-        "group_name": "前端调试测试群",
-        "total_count": 213,
-        "type_data": get_mock_data_type(),
-        "trait_data": get_mock_data_trait(),
-        "type_history_data": [],
-        "trait_history_data": []
-    }
-
-# --- 2. 配置 ---
-CONFIG = {
-    "type-stats": {
-        "template_subpath": "type-stats/index.html",
-        "output_subpath": "type-stats/preview.html",
-        "data_provider": get_mock_data_type
-    },
-    "trait-stats": {
-        "template_subpath": "trait-stats/index.html",
-        "output_subpath": "trait-stats/preview.html",
-        "data_provider": get_mock_data_trait
-    },
-    "mbti-stats": {
-        "template_subpath": "mbti-stats/index.html",
-        "output_subpath": "mbti-stats/preview.html",
-        "data_provider": get_mock_data_mbti
-    }
-}
-
-# --- 3. 渲染逻辑 ---
+# 设置环境
 root_dir = Path(__file__).parent
-template_base_dir = root_dir / "template"
+template_base_dir = root_dir / TEMPLATE_DIR_NAME
 env = Environment(loader=FileSystemLoader(template_base_dir))
 
-def render_preview(mode):
-    cfg = CONFIG[mode]
-    template_path = cfg["template_subpath"]
+def get_available_modes():
+    """扫描 template 目录，返回所有包含 index.html 的子目录名"""
+    modes = []
+    if not template_base_dir.exists():
+        return modes
     
-    # 加载模板
+    for path in template_base_dir.iterdir():
+        if path.is_dir() and (path / INDEX_FILE_NAME).exists():
+            modes.append(path.name)
+    return modes
+
+def render_preview(mode):
+    """渲染指定模式的页面"""
+    mode_dir = template_base_dir / mode
+    template_path = f"{mode}/{INDEX_FILE_NAME}"
+    mock_path = mode_dir / MOCK_FILE_NAME
+    output_path = mode_dir / PREVIEW_FILE_NAME
+
+    # 1. 加载 Mock 数据
+    data = {}
+    if not mock_path.exists():
+        print(f"❌ 未找到 Mock 数据文件: {MOCK_FILE_NAME}")
+        return False
     try:
-        # Jinja2 loader is relative to template_base_dir
-        # Since template_subpath is like "type-stats/index.html", it should work if file exists
+        with open(mock_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except json.JSONDecodeError as e:
+        print(f"❌ Mock 数据格式错误 ({MOCK_FILE_NAME}): {e}")
+        return False
+    except Exception as e:
+        print(f"❌ 读取 Mock 数据失败: {e}")
+        return False
+
+    # 2. 加载模板
+    try:
         template = env.get_template(template_path)
     except Exception as e:
         print(f"❌ 找不到模板文件 ({template_path}): {e}")
-        return None
+        return False
 
-    # 获取数据
-    data = cfg["data_provider"]()
-    
-    # 渲染 HTML
+    # 3. 渲染 HTML
     try:
         html_content = template.render(**data)
     except Exception as e:
-        print(f"❌ 渲染出错: {e}")
-        return None
+        print(f"❌ Jinja2 渲染出错: {e}")
+        return False
     
-    # 输出文件
-    output_path = template_base_dir / cfg["output_subpath"]
-    # 确保父目录存在
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    # 4. 输出文件
+    try:
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(html_content)
+    except Exception as e:
+        print(f"❌ 写入预览文件失败: {e}")
+        return False
     
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write(html_content)
-    
-    print(f"✅ [{mode}] 预览文件已生成: {output_path}")
-    return output_path
+    print(f"✅ [{mode}] 预览已更新: {output_path}")
+    return True
 
 def watch_mode(mode):
-    cfg = CONFIG[mode]
-    # template_path is relative to template_base_dir
-    # We need absolute path for watching
-    target_file = template_base_dir / cfg["template_subpath"]
+    """监听文件变化并自动重绘"""
+    mode_dir = template_base_dir / mode
+    if not mode_dir.exists():
+        print(f"❌ 目录不存在: {mode_dir}")
+        return
+
+    print(f"🚀 启动调试模式: {mode}")
+    print(f"📂 监听目录: {mode_dir}")
+    print(f"   - {INDEX_FILE_NAME}")
+    print(f"   - {MOCK_FILE_NAME}")
+    print(f"💡 请确保已启动 Live Server 监听 {mode}/{PREVIEW_FILE_NAME}")
+
+    # 初始渲染
+    render_preview(mode)
+
+    # 需要观察的文件列表
+    files_to_watch = {
+        "index": mode_dir / INDEX_FILE_NAME,
+        "mock": mode_dir / MOCK_FILE_NAME
+    }
     
-    print(f"🚀 启动模式: {mode}")
-    print(f"👀 正在监听 {target_file} 的变化...")
-    print(f"💡 请确保已启动 Live Server 监听 {cfg['output_subpath']}")
-    
-    last_mtime = 0
-    
+    # 存在状态
+    last_exists = {
+        "index": None,
+        "mock": None
+    }
+    # 最后修改时间
+    last_mtimes = {
+        "index": None,
+        "mock": None
+    }
+
     try:
         while True:
-            try:
-                # 检查文件是否存在
-                if not target_file.exists():
-                    # 如果是首次运行或者文件刚被删除，提示一下，然后等待
-                    if last_mtime != -1: 
-                        print(f"⚠️ 目标文件不存在: {target_file}，等待创建...")
-                        last_mtime = -1
-                    time.sleep(1)
-                    continue
+            needs_render = False
+            
+            for key, file_path in files_to_watch.items():      
+                detected_change = False          
+                try:
+                    # 存在状态
+                    current_exist = file_path.exists()
+                    last_exist = last_exists.get(key)
 
-                # 获取文件修改时间
-                current_mtime = target_file.stat().st_mtime
+                    if last_exist is None:
+                        last_exists[key] = current_exist
+                        last_exist = current_exist
+
+                    # 最后修改时间
+                    current_mtime = file_path.stat().st_mtime
+                    last_mtime = last_mtimes.get(key)
+
+                    if last_mtime is None:
+                        last_mtimes[key] = current_mtime
+                        last_mtime = current_mtime
+
+                    # 对比检查
+                    if last_exist != current_exist:
+                        last_exists[key] = current_exist
+                        detected_change = True
                 
-                # 如果时间戳改变
-                if current_mtime != last_mtime:
-                    if last_mtime != 0 and last_mtime != -1: # 非首次运行才提示
-                        print("⚡ 检测到文件变化，正在重新渲染...")
+                    if current_mtime != last_mtime:
+                        last_mtimes[key] = current_mtime
+                        detected_change = True
                     
-                    render_preview(mode)
-                    last_mtime = current_mtime
+                    if detected_change:
+                        print(f"⚡ 检测到 {file_path.name} 变化...")
+                        needs_render = True
                     
-                time.sleep(0.5)
-            except Exception as e:
-                print(f"⚠️ 发生错误: {e}")
-                time.sleep(1)
+                except OSError:
+                    pass
+            
+            if needs_render:
+                render_preview(mode)
                 
+            time.sleep(0.5)
+
     except KeyboardInterrupt:
         print("\n🛑 已停止监听")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="前端模板开发调试工具")
-    parser.add_argument("mode", nargs="?", default="type-stats", choices=CONFIG.keys(), help="调试模式 (默认: type-stats)")
+    available_modes = get_available_modes()
+    
+    parser = argparse.ArgumentParser(description="前端页面开发调试工具")
+    parser.add_argument(
+        "mode", nargs="?", 
+        help=f"页面模式 (template/ 模板目录下的子目录名，目前检测到可用模式: {', '.join(available_modes)})"
+    )
     
     args = parser.parse_args()
-    watch_mode(args.mode)
+    
+    target_mode = args.mode
+
+    # 如果没有指定 mode，或者指定的 mode 不存在
+    if not target_mode:
+        if not available_modes:
+            print("❌ 在 template/ 目录下未找到任何包含 index.html 的子目录，没有可用模式")
+            sys.exit(1)
+        # 默认选择第一个，或者这里可以改为让用户选择
+        if "mbti-stats" in available_modes:
+            target_mode = "mbti-stats"
+        else:
+            target_mode = available_modes[0]
+        print(f"ℹ️ 未指定模式，自动选择: {target_mode}")
+    elif target_mode not in available_modes:
+        print(f"❌ 模式 '{target_mode}' 不存在 (找不到 {target_mode}/index.html)")
+        print(f"可用模式: {', '.join(available_modes)}")
+        sys.exit(1)
+
+    watch_mode(target_mode)
