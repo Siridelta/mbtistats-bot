@@ -163,7 +163,7 @@ async def handle_mbti_stats(bot: Bot, event: Event, matcher: Matcher):
     try:
         if data_updated:
             image_bytes = await render_chart(
-                template_name="mbti-stats/index.html",
+                template_mode="mbti-stats",
                 data=data,
                 width=1050,
                 height=2500,  # 增加高度以容纳所有内容
@@ -173,7 +173,7 @@ async def handle_mbti_stats(bot: Bot, event: Event, matcher: Matcher):
             _image_bytes = await use_cache(img_cache_path)
             if _image_bytes is None:
                 _image_bytes = await render_chart(
-                    template_name="mbti-stats/index.html",
+                    template_mode="mbti-stats",
                     data=data,
                     width=1050,
                     height=2500,  # 增加高度以容纳所有内容

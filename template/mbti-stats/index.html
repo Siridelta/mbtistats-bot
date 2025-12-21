@@ -4,9 +4,7 @@
 <head>
     <meta charset="utf-8">
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
-    <style>
-        {% include 'mbti-stats/styles.css' %}
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <body style="height: 100%; margin: 0">
@@ -17,7 +15,7 @@
             <div class="sep"></div>
             {{ total_count }} 人
             <div class="sep"></div>
-            机器人开发 By Siri & 玛画疼
+            机器人开发 By Sirilit & 玛画疼
             <div class="sep"></div>
             <span id="timestamp"></span>
         </div>
@@ -72,9 +70,7 @@
         var _typeHistoryData = {{ type_history_data | tojson }};
         var _traitHistoryData = {{ trait_history_data | tojson }};
     </script>
-    <script>
-        {% include 'mbti-stats/scripts.js' %}
-    </script>
+    <script src="scripts.js"></script>
 </body>
 
 </html>

@@ -1,4 +1,4 @@
-import json
+import uuid
 from pathlib import Path
 from typing import Dict, Any, Optional
 from jinja2 import Environment, FileSystemLoader
@@ -38,7 +38,7 @@ async def write_cache(
         logger.error(f"写入缓存图片失败: {e}")
 
 async def render_chart(
-    template_name: str, 
+    template_mode: str, 
     data: Dict[str, Any], 
     width: int = 1080, 
     height: int = 1080,
@@ -47,7 +47,8 @@ async def render_chart(
     使用 Playwright 渲染 HTML 模板并截图。
     
     Args:
-        template_name: 模板相对路径，例如 "type-stats/index.html"
+        template_mode: 模板目录名（位于 template/ 下），例如 "mbti-stats"
+                       必须包含 index.html
         data: 传递给 Jinja2 模板的上下文数据
         width: 视口宽度
         height: 视口高度
@@ -56,20 +57,46 @@ async def render_chart(
     """
 
     # 1. 准备模板环境
-    # 我们将 TEMPLATE_ROOT 设为 searchpath，这样 template_name 可以是相对路径
+    # 我们将 TEMPLATE_ROOT 设为 searchpath
     if not TEMPLATE_ROOT.exists():
         logger.error(f"模板目录不存在: {TEMPLATE_ROOT}")
         raise FileNotFoundError(f"Template directory not found: {TEMPLATE_ROOT}")
 
     env = Environment(loader=FileSystemLoader(TEMPLATE_ROOT))
+    
+    # 约定：index.html 位于 template_mode 目录下
+    template_path = f"{template_mode}/index.html"
+    
     try:
-        template = env.get_template(template_name)
+        template = env.get_template(template_path)
     except Exception as e:
-        logger.error(f"加载模板失败 {template_name}: {e}")
+        logger.error(f"加载模板失败 {template_path}: {e}")
         raise e
 
     # 2. 渲染 HTML 内容
     html_content = template.render(**data)
+
+    # --- 修改：写入临时文件 ---
+    # 为了解决 Playwright 不允许读取本地资源的问题，我们将渲染后的 HTML 写入到模板目录下的临时文件
+    # 然后使用 page.goto 加载本地文件
+    
+    # 生成临时文件名，避免并发冲突
+    temp_filename = f"render_{uuid.uuid4().hex}.html"
+    
+    # 输出目录即为模板所在目录，确保相对路径正确
+    output_dir = TEMPLATE_ROOT / template_mode
+    output_path = output_dir / temp_filename
+    
+    try:
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(html_content)
+            
+        file_url = output_path.absolute().as_uri()
+        
+    except Exception as e:
+        logger.error(f"写入临时 HTML 文件失败: {e}")
+        raise e
+    # -------------------------
 
     # 3. 启动浏览器截图
     async with async_playwright() as p:
@@ -95,7 +122,8 @@ async def render_chart(
             # -------------------------------
             
             # 设置 HTML 内容
-            await page.set_content(html_content)
+            # await page.set_content(html_content)
+            await page.goto(file_url)
             
             # 等待渲染
             # 等待 ECharts 的 canvas 出现
@@ -114,6 +142,13 @@ async def render_chart(
                 screenshot = await page.screenshot(type="png", full_page=True)
                 
             await browser.close()
+            
+            # 清理临时文件
+            try:
+                output_path.unlink()
+            except Exception as e:
+                logger.warning(f"删除临时文件失败: {e}")
+                
             return screenshot
             
         except Exception as e:
