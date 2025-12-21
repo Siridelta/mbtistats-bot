@@ -14,20 +14,20 @@ MBTI_UPPER_REGEX = re.compile(r"(?:(?P<EI>[EIX])(?P<SN>[NSX])(?P<TF>[TFX])(?P<JP
 OPS_DO_REGEX = re.compile(r"(?:(?P<D_TF>[TF])(?P<D_ei>[ie])/(?P<O_SN>[NS])(?P<O_ei>[ie]))")
 OPS_OD_REGEX = re.compile(r"(?:(?P<O_SN>[NS])(?P<O_ei>[ie])/(?P<D_TF>[TF])(?P<D_ei>[ie]))")
 
-# MBTI 识别数据格式：
-# 集合用户声明的所有可能性，并反映成4维度上的单取值/双取值（模糊取值）。
-# {
-#   "EI": { "E": True, "I": False },
-#   "SN": { "S": True, "N": False },
-#   "TF": { "T": True, "F": False },
-#   "JP": { "J": True, "P": False },
-#   ...
-# }
+
 def parse_mbti_from_text(text: str) -> Optional[Dict[str, Dict[str, bool]]]:
     """
     从文本中解析 MBTI 类型。
     优先匹配标准 4 字母代码，其次尝试 OPS 代码。
-    返回大写的类型字符串 (如 "INTP")，如果未找到则返回 None。
+    返回格式为 MBTI 识别数据，集合用户声明的所有可能性，并反映成4维度上的单取值/双取值（模糊取值）。
+    MBTI 识别数据格式：
+    {
+        "EI": { "E": True, "I": False },
+        "SN": { "S": True, "N": False },
+        "TF": { "T": True, "F": False },
+        "JP": { "J": True, "P": False },
+    }
+    如果未找到则返回 None。
     """
     if not text:
         return None
@@ -176,12 +176,22 @@ def analyze_type_stats(member_names: List[str]) -> Tuple[List[Dict], int]:
         
     Returns:
         Tuple[List[Dict], int]: (ECharts 数据列表, 有效样本总数)
-        数据列表格式: [{"name": "INTP", "value": 15}, ...]
+        数据列表格式: [
+            {
+                "name": "INTP",
+                "value": 15,
+            },
+            ...
+            {
+                "name": "模糊类型",
+                "value": 10,
+            }
+        ]
     """
 
     mbti_type_countsource = []
     
-    def parse_mbti_typename(mbti_data: Dict[str, Dict[str, bool]]) -> str:
+    def parse_name_from_mbti(mbti_data: Dict[str, Dict[str, bool]]) -> str:
         name = ""
         for trait_dim in ["EI", "SN", "TF", "JP"]:  # 维度枚举, 按照正确顺序
             valid_traits = [trait for trait, isValid in mbti_data[trait_dim].items() if isValid]
@@ -200,14 +210,20 @@ def analyze_type_stats(member_names: List[str]) -> Tuple[List[Dict], int]:
         mbti = parse_mbti_from_text(name)
         if not mbti:
             continue
-        mbti_type_countsource.append(parse_mbti_typename(mbti))
+        mbti_type_countsource.append(parse_name_from_mbti(mbti))
             
     total_count = len(mbti_type_countsource)
     counts = Counter(mbti_type_countsource)
     
     # 转换为 ECharts 格式
     expected_names = ['INTP', 'INTJ', 'ENTP', 'ENTJ', 'INFP', 'INFJ', 'ENFP', 'ENFJ', 'ISTP', 'ISTJ', 'ESTP', 'ESTJ', 'ISFP', 'ISFJ', 'ESFP', 'ESFJ']
-    chart_data = [{"name": k if k != 'fuzzy-type' else '模糊类型', "value": v} for k, v in counts.items()]
+    chart_data = [
+        {
+            "name": k if k != 'fuzzy-type' else '模糊类型',
+            "value": v,
+        } 
+        for k, v in counts.items()
+    ]
     for name in expected_names:
         if name not in counts:
             chart_data.append({"name": name, "value": 0})
