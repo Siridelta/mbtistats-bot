@@ -103,8 +103,7 @@ async def render_chart(
     # 使用 PlaywrightContext.new_page 替代原本的 async with async_playwright() ...
     try:
         async with PlaywrightContext.new_page(
-            viewport={"width": width, "height": height},
-            device_scale_factor=2
+            viewport={"width": width, "height": height}
         ) as page:
             
             # --- 监听控制台日志和页面错误 ---
