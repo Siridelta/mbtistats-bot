@@ -5,6 +5,7 @@ from jinja2 import Environment, FileSystemLoader
 
 # --- 1. 准备模拟数据 ---
 
+# 旧版数据
 def get_mock_data_type():
     data = [
         {"name": "INTP", "value": 15}, {"name": "INTJ", "value": 8},
@@ -41,6 +42,18 @@ def get_mock_data_trait():
         }
     }
 
+# 新版合一数据
+def get_mock_data_mbti():
+    return {
+        "title": "MBTI 类型与特质分布统计 (开发预览)",
+        "group_name": "前端调试测试群",
+        "total_count": 213,
+        "type_data": get_mock_data_type(),
+        "trait_data": get_mock_data_trait(),
+        "type_history_data": [],
+        "trait_history_data": []
+    }
+
 # --- 2. 配置 ---
 CONFIG = {
     "type-stats": {
@@ -52,6 +65,11 @@ CONFIG = {
         "template_subpath": "trait-stats/index.html",
         "output_subpath": "trait-stats/preview.html",
         "data_provider": get_mock_data_trait
+    },
+    "mbti-stats": {
+        "template_subpath": "mbti-stats/index.html",
+        "output_subpath": "mbti-stats/preview.html",
+        "data_provider": get_mock_data_mbti
     }
 }
 

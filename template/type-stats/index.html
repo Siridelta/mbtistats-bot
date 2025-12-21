@@ -158,7 +158,8 @@
         // Jinja2 注入的数据
         // 原始数据形如: [{"name": "INTP", "value": 15}, ...]
         const rawData = {{ data | tojson }};
-        const historyData = {{ history_data | tojson }};
+        // const historyData = {{ history_data | tojson }};
+        const historyData = [];
 
         // 2. 数据预处理：注入颜色 itemStyle 并排序
         // 我们希望饼图扇区按照 mbtiConfig 的逻辑顺序排列 (分析家在一起, etc.)
