@@ -2,7 +2,8 @@ import uuid
 from pathlib import Path
 from typing import Dict, Any, Optional
 from jinja2 import Environment, FileSystemLoader
-from playwright.async_api import async_playwright
+# 移除旧的 async_playwright 导入，导入新的管理器
+from .playwright_context import PlaywrightContext
 from nonebot import logger
 
 # 模板根目录: mbtistats-bot/template
@@ -99,30 +100,19 @@ async def render_chart(
     # -------------------------
 
     # 3. 启动浏览器截图
-    async with async_playwright() as p:
-        try:
-            # 启动 Chromium
-            # 注意：在 Docker 或服务器上可能需要 args=['--no-sandbox']
-            # 这里默认加上，以防万一
-            browser = await p.chromium.launch(
-                headless=True, 
-                args=['--no-sandbox', '--disable-setuid-sandbox']
-            )
+    # 使用 PlaywrightContext.new_page 替代原本的 async with async_playwright() ...
+    try:
+        async with PlaywrightContext.new_page(
+            viewport={"width": width, "height": height},
+            device_scale_factor=2
+        ) as page:
             
-            # 创建上下文，设置视口和设备缩放比（提高清晰度）
-            context = await browser.new_context(
-                viewport={"width": width, "height": height}, 
-                device_scale_factor=2
-            )
-            page = await context.new_page()
-
             # --- 监听控制台日志和页面错误 ---
             page.on("console", lambda msg: logger.info(f"[Browser Console] {msg.text}"))
             page.on("pageerror", lambda exc: logger.error(f"[Browser Error] {exc}"))
             # -------------------------------
             
-            # 设置 HTML 内容
-            # await page.set_content(html_content)
+            # 加载页面
             await page.goto(file_url)
             
             # 等待渲染
@@ -136,22 +126,26 @@ async def render_chart(
 
             # 截图
             # 优先截取 .container，如果没找到则截全屏
-            if await page.locator(".container").count() > 0:
-                screenshot = await page.locator(".container").screenshot(type="png")
-            else:
-                screenshot = await page.screenshot(type="png", full_page=True)
-                
-            await browser.close()
-            
-            # 清理临时文件
             try:
-                output_path.unlink()
+                # 尝试截取特定容器，去掉可能存在的空白边缘
+                element = await page.query_selector(".container")
+                if element:
+                    screenshot = await element.screenshot(type="png")
+                else:
+                    logger.warning("未找到 .container 元素，回退到全屏截图")
+                    screenshot = await page.screenshot(full_page=True, type="png")
             except Exception as e:
-                logger.warning(f"删除临时文件失败: {e}")
+                logger.warning(f"截取 .container 失败，回退到全屏截图: {e}")
+                screenshot = await page.screenshot(full_page=True, type="png")
                 
             return screenshot
             
-        except Exception as e:
-            logger.error(f"Playwright 渲染出错: {e}")
-            raise e
+    except Exception as e:
+        logger.error(f"Playwright 渲染出错: {e}")
+        raise e
+    finally:
+        # 清理临时文件
+        if output_path.exists():
+           output_path.unlink()
+        pass
 
