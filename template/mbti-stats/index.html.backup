@@ -61,8 +61,34 @@
             <div id="trait-history-table-container"></div>
         </div>
     </div>
-    <script src="scripts.js"></script>
 
+    <script>
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // Jinja2 注入的数据
+            // 原始数据形如: [{"name": "INTP", "value": 15}, ...]
+            const typeRawData = {{ type_data | tojson }};
+            const typeHistoryData = {{ type_history_data | tojson }};
+            const traitRawData = {{ trait_data | tojson }};
+            const traitHistoryData = {{ trait_history_data | tojson }};
+
+            // 显示最多人数的人格类型
+            displayTopPersonality(typeRawData);
+
+            // 渲染主要图表
+            renderCharts(typeRawData);
+
+            // 绘制历史趋势图
+            drawTypeHistoryChart(typeHistoryData);
+            
+            // 绘制特质趋势图
+            drawTraitTrendChart(typeHistoryData);
+            
+            // 初始化所有特质图表
+            initAllTraitCharts(traitRawData);
+        });
+    </script>
+    <script src="scripts.js"></script>
 </body>
 
 </html>

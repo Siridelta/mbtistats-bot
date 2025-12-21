@@ -109,7 +109,7 @@ async def handle_mbti_stats(bot: Bot, event: Event, matcher: Matcher):
             template_name="mbti-stats/index.html",
             data=data,
             width=1050,
-            height=2300,  # 增加高度以容纳所有内容
+            height=2500,  # 增加高度以容纳所有内容
             img_cache_path=img_cache_path,
             data_cache_path=data_cache_path,
             force_rerender=isDebug    # 如果调试模式，则强制重新缓存；否则优先复用缓存
