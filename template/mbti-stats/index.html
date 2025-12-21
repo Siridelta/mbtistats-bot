@@ -4,7 +4,9 @@
 <head>
     <meta charset="utf-8">
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        {% include 'mbti-stats/styles.css' %}
+    </style>
 </head>
 
 <body style="height: 100%; margin: 0">
@@ -70,7 +72,9 @@
         var _typeHistoryData = {{ type_history_data | tojson }};
         var _traitHistoryData = {{ trait_history_data | tojson }};
     </script>
-    <script src="scripts.js"></script>
+    <script>
+        {% include 'mbti-stats/scripts.js' %}
+    </script>
 </body>
 
 </html>

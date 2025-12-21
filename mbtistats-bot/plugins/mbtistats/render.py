@@ -88,6 +88,11 @@ async def render_chart(
                 device_scale_factor=2
             )
             page = await context.new_page()
+
+            # --- 监听控制台日志和页面错误 ---
+            page.on("console", lambda msg: logger.info(f"[Browser Console] {msg.text}"))
+            page.on("pageerror", lambda exc: logger.error(f"[Browser Error] {exc}"))
+            # -------------------------------
             
             # 设置 HTML 内容
             await page.set_content(html_content)
