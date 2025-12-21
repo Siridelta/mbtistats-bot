@@ -14,7 +14,7 @@ body {
     border-radius: 0px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     width: 1000px;
-    height: 3400px;
+    height: auto;
 }
 
 h1 {
@@ -65,12 +65,19 @@ h1 {
     background-color: #f0f0f0;
     border-radius: 8px;
     overflow: hidden;
+    position: relative;
 }
 
 .image-container img {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
+    width: auto;
+    height: auto;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .purple-placeholder {
