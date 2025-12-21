@@ -504,14 +504,15 @@ if (typeHistoryData && typeHistoryData.length > 1) {
     };
     
     trendChart.setOption(trendOption);
-    
-    // 创建历史数据表格
-    createTypeHistoryTable(typeHistoryData, colorGroups);
+} else {
+    trendDom.style.display = 'none';
 }
+// 创建历史数据表格
+createTypeHistoryTable(typeHistoryData);
 
 // 创建历史数据表格
 function createTypeHistoryTable(historyData, colorGroups) {
-    if (!historyData || historyData.length <= 1) return;
+    if (!historyData || historyData.length === 0) return;
     
     let tableHTML = '<table>';
     
@@ -530,7 +531,7 @@ function createTypeHistoryTable(historyData, colorGroups) {
     tableHTML += '</tr></thead><tbody>';
     
     // 数据行
-    historyData.forEach(record => {
+    historyData.toReversed().forEach(record => {
         const d = new Date(record.timestamp);
         const dateStr = `${d.getMonth()+1}-${d.getDate()}`;
         tableHTML += `<tr><td>${dateStr}</td>`;
@@ -860,13 +861,15 @@ if (typeHistoryData && typeHistoryData.length > 1) {
     // 使用traitTrendChart绘制16人格数量变化堆积柱状图
     traitTrendChart.setOption(trendOption);
     
-    // 创建历史数据表格
-    createTraitHistoryTable(traitHistoryData);
+} else {
+    traitTrendDom.style.display = 'none';
 }
+// 创建历史数据表格
+createTraitHistoryTable(traitHistoryData);
 
 // 创建历史数据表格
 function createTraitHistoryTable(historyData) {
-    if (!historyData || historyData.length <= 1) return;
+    if (!historyData || historyData.length === 0) return;
     
     let tableHTML = '<table>';
     
@@ -891,7 +894,7 @@ function createTraitHistoryTable(historyData) {
     tableHTML += '</tr></thead><tbody>';
     
     // 数据行
-    historyData.forEach(record => {
+    historyData.toReversed().forEach(record => {
         const d = new Date(record.timestamp);
         const dateStr = `${d.getMonth()+1}-${d.getDate()}`;
         tableHTML += `<tr><td>${dateStr}</td>`;

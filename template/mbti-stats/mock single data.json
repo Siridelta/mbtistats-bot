@@ -1,0 +1,191 @@
+{
+    "title": "MBTI 类型与特质分布统计 (静态测试)",
+    "group_name": "静态数据测试群111",
+    "total_count": 213,
+    "type_data": [
+        {
+            "name": "INTP",
+            "value": 15
+        },
+        {
+            "name": "ENTP",
+            "value": 12
+        },
+        {
+            "name": "INTJ",
+            "value": 10
+        },
+        {
+            "name": "ENTJ",
+            "value": 8
+        },
+        {
+            "name": "INFP",
+            "value": 18
+        },
+        {
+            "name": "ENFP",
+            "value": 20
+        },
+        {
+            "name": "INFJ",
+            "value": 7
+        },
+        {
+            "name": "ENFJ",
+            "value": 5
+        },
+        {
+            "name": "ISTJ",
+            "value": 6
+        },
+        {
+            "name": "ESTJ",
+            "value": 4
+        },
+        {
+            "name": "ISFJ",
+            "value": 3
+        },
+        {
+            "name": "ESFJ",
+            "value": 2
+        },
+        {
+            "name": "ISTP",
+            "value": 4
+        },
+        {
+            "name": "ESTP",
+            "value": 3
+        },
+        {
+            "name": "ISFP",
+            "value": 2
+        },
+        {
+            "name": "ESFP",
+            "value": 1
+        }
+    ],
+    "trait_data": {
+        "EI": {
+            "I": 50,
+            "E": 45,
+            "X": 5
+        },
+        "SN": {
+            "N": 70,
+            "S": 25,
+            "X": 5
+        },
+        "TF": {
+            "F": 60,
+            "T": 35,
+            "X": 5
+        },
+        "JP": {
+            "P": 65,
+            "J": 30,
+            "X": 5
+        }
+    },
+    "type_history_data": [
+        {
+            "timestamp": 1766045826791,
+            "data": [
+                {
+                    "name": "INTP",
+                    "value": 10
+                },
+                {
+                    "name": "ENTP",
+                    "value": 8
+                },
+                {
+                    "name": "INTJ",
+                    "value": 7
+                },
+                {
+                    "name": "ENTJ",
+                    "value": 5
+                },
+                {
+                    "name": "INFP",
+                    "value": 12
+                },
+                {
+                    "name": "ENFP",
+                    "value": 15
+                },
+                {
+                    "name": "INFJ",
+                    "value": 5
+                },
+                {
+                    "name": "ENFJ",
+                    "value": 3
+                },
+                {
+                    "name": "ISTJ",
+                    "value": 4
+                },
+                {
+                    "name": "ESTJ",
+                    "value": 2
+                },
+                {
+                    "name": "ISFJ",
+                    "value": 2
+                },
+                {
+                    "name": "ESFJ",
+                    "value": 1
+                },
+                {
+                    "name": "ISTP",
+                    "value": 3
+                },
+                {
+                    "name": "ESTP",
+                    "value": 2
+                },
+                {
+                    "name": "ISFP",
+                    "value": 1
+                },
+                {
+                    "name": "ESFP",
+                    "value": 1
+                }
+            ]
+        }
+    ],
+    "trait_history_data": [
+        {
+            "timestamp": 1766045826791,
+            "data": {
+                "EI": {
+                    "I": 40,
+                    "E": 35,
+                    "X": 5
+                },
+                "SN": {
+                    "N": 60,
+                    "S": 20,
+                    "X": 5
+                },
+                "TF": {
+                    "F": 50,
+                    "T": 30,
+                    "X": 5
+                },
+                "JP": {
+                    "P": 55,
+                    "J": 25,
+                    "X": 5
+                }
+            }
+        }
+    ]
+}

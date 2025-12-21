@@ -135,19 +135,32 @@ async def handle_mbti_stats(bot: Bot, event: Event, matcher: Matcher):
 
     # 3. 准备渲染数据
     # 注意：history_data 包含了所有历史，包括刚刚可能追加的当前数据
+    # 每天的最后一个时间戳
+    last_t_per_day = {}
+    def get_day_key(t): return datetime.fromtimestamp(t / 1000).strftime("%Y-%m-%d")
+    for record in history_data:
+        day_key = get_day_key(record["timestamp"])
+        if day_key not in last_t_per_day or last_t_per_day[day_key] < record["timestamp"]:
+            last_t_per_day[day_key] = record["timestamp"]
+    
+    compressed_history_data = [ 
+        record for record in history_data 
+        if record["timestamp"] == last_t_per_day[get_day_key(record["timestamp"])]
+    ]
+
     type_history_data = [
         {
             "timestamp": record["timestamp"],
             "data": record["type_data"]
         }
-        for record in history_data
+        for record in compressed_history_data
     ]
     trait_history_data = [
         {
             "timestamp": record["timestamp"],
             "data": record["trait_data"]
         }
-        for record in history_data
+        for record in compressed_history_data
     ]
     data = {
         "title": "MBTI 类型与特质分布统计",
