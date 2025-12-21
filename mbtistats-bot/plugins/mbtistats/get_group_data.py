@@ -120,6 +120,10 @@ async def get_group_members(bot: Bot, event: Event) -> List[str]:
 
     return []
 
+# ------
+# mocks
+# ------
+
 def generate_mock_members(count: int = 200) -> List[str]:
     """
     生成模拟的群成员昵称列表，包含各种 MBTI 标注格式
