@@ -13,8 +13,34 @@ var echarts;
 // 注入的数据
 const typeRawData = _typeRawData;
 const traitRawData = _traitRawData;
-const typeHistoryData = _typeHistoryData;
+const typeHistoryData1 = _typeHistoryData;
 const traitHistoryData = _traitHistoryData;
+
+// 数据预处理：归一化时间戳到当天 12:00，并对同一天的数据去重（取最新）
+function normalizeHistoryData(data) {
+    if (!data || !Array.isArray(data)) return [];
+    
+    const map = new Map();
+    data.forEach(item => {
+        const d = new Date(item.timestamp);
+        // 设为当天 00:00:00，忽略具体时分秒
+        const keyDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0);
+        const key = keyDate.getTime();
+        
+        // Map 会保持插入顺序，但 set 同一个 key 会更新 value
+        // 因为数据源通常是按时间正序的，所以这里会自动保留当天的最后一条数据
+        map.set(key, {
+            ...item,
+            timestamp: key
+        });
+    });
+    
+    // 转回数组并按时间排序
+    return Array.from(map.values()).sort((a, b) => a.timestamp - b.timestamp);
+}
+
+// 使用归一化后的数据用于图表绘制
+const typeHistoryData = normalizeHistoryData(typeHistoryData1);
 
 // 类型统计图表
 var pieDom = document.getElementById("pie-chart-container");
@@ -339,14 +365,8 @@ if (barOption && typeof barOption === "object") {
     barChart.setOption(barOption);
 }
 
-// 绘制历史趋势图（改为堆积柱状图）
+// 绘制历史趋势图（四色人格）
 if (typeHistoryData && typeHistoryData.length > 1) {
-    // 准备趋势图数据
-    const dates = typeHistoryData.map(record => {
-        const d = new Date(record.timestamp);
-        return `${d.getMonth()+1}-${d.getDate()}`;
-    });
-    
     // 定义四色分类
     const colorGroups = {
         "分析家": ["INTJ", "INTP", "ENTJ", "ENTP"],
@@ -358,12 +378,13 @@ if (typeHistoryData && typeHistoryData.length > 1) {
     // 为每个四色组合创建数据系列
     const series = [];
     Object.entries(colorGroups).forEach(([groupName, types]) => {
-        // 获取该组合在所有历史记录中的数值
+        // 构建 [时间戳, 数值] 格式的数据
         const groupData = typeHistoryData.map(record => {
-            return types.reduce((sum, type) => {
+            const value = types.reduce((sum, type) => {
                 const item = record.data.find(d => d.name === type);
                 return sum + (item ? item.value : 0);
             }, 0);
+            return [record.timestamp, value]; // 使用时间戳
         });
         
         // 定义颜色
@@ -383,31 +404,38 @@ if (typeHistoryData && typeHistoryData.length > 1) {
             itemStyle: { color: color },
             lineStyle: {
                 color: color,
-                width: 2
+                width: 3
             },
             symbol: 'circle',
-            symbolSize: 6,
+            symbolSize: 8,
             smooth: true,
             emphasis: {
                 focus: 'series',
-                symbolSize: 8
-            },
-            areaStyle: {
-                color: {
-                    type: 'linear',
-                    x: 0,
-                    y: 0,
-                    x2: 0,
-                    y2: 1,
-                    colorStops: [{
-                        offset: 0, color: color + '80' // 80是透明度，半透明
-                    }, {
-                        offset: 1, color: color + '10' // 10是透明度，几乎透明
-                    }]
-                }
+                symbolSize: 10
             }
         });
     });
+    
+    // 因为折线图本身就有数据点标记，这个，额，先暂时注释掉？
+
+    // // 4. 添加一个辅助散点系列，用于在底部标记"有数据的时间点"
+    // // 这样用户一眼就能看出哪些日期是有真实数据的，哪些是插值连线
+    // series.push({
+    //     name: '数据录入点',
+    //     type: 'scatter',
+    //     symbol: 'circle',
+    //     symbolSize: 6,
+    //     itemStyle: {
+    //         color: '#888', // 中性灰色
+    //         opacity: 0.6
+    //     },
+    //     // 数据格式：[时间戳, 0]，即贴在 X 轴上
+    //     data: typeHistoryData.map(record => [record.timestamp, 0]),
+    //     z: 10, // 确保显示在最上层
+    //     tooltip: {
+    //         show: false // 不需要显示具体的 tooltip，因为其他系列已经有了
+    //     }
+    // });
     
     const trendOption = {
         title: {
@@ -427,12 +455,15 @@ if (typeHistoryData && typeHistoryData.length > 1) {
                 }
             },
             formatter: function (params) {
-                let result = params[0].axisValueLabel + '<br/>';
-                params.sort((a, b) => b.value - a.value);
+                // 格式化时间
+                const date = new Date(params[0].value[0]);
+                let result = `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}<br/>`;
+                
+                params.sort((a, b) => b.value[1] - a.value[1]);
                 params.forEach(param => {
-                    if (param.value > 0) {
+                    if (param.value[1] > 0) {
                         result += `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${param.color};"></span>`;
-                        result += `${param.seriesName}: ${param.value}人<br/>`;
+                        result += `${param.seriesName}: ${param.value[1]}人<br/>`;
                     }
                 });
                 return result;
@@ -462,12 +493,14 @@ if (typeHistoryData && typeHistoryData.length > 1) {
             containLabel: true
         },
         xAxis: {
-            type: 'category',
-            data: dates,
+            type: 'time', // 使用时间轴
+            minInterval: 3600 * 24 * 1000, // 强制最小刻度间隔为 1 天，避免同一天出现多个刻度
             axisLabel: {
                 fontSize: 12,
-                rotate: 45,
-                interval: 0
+                formatter: '{yy}.{MM}.{dd}',
+                hideOverlap: true,
+                showMaxLabel: true, // 强制显示最大值标签，防止最后一个日期被隐藏
+                showMinLabel: true  // 强制显示最小值标签
             },
             axisLine: {
                 show: true
@@ -508,7 +541,7 @@ if (typeHistoryData && typeHistoryData.length > 1) {
     trendDom.style.display = 'none';
 }
 // 创建历史数据表格
-createTypeHistoryTable(typeHistoryData);
+createTypeHistoryTable(typeHistoryData1);
 
 // 创建历史数据表格
 function createTypeHistoryTable(historyData, colorGroups) {
@@ -718,51 +751,75 @@ function initTraitChart(cfg) {
 
 // 绘制16MBTI各种人格的数量变化堆积柱状图
 if (typeHistoryData && typeHistoryData.length > 1) {
-    // 准备趋势图数据
-    const dates = typeHistoryData.map(record => {
-        const d = new Date(record.timestamp);
-        return `${d.getMonth()+1}-${d.getDate()}`;
-    });
-    
     // 获取所有16人格类型
     const allPersonalities = mbtiConfig.map(item => item.type);
-    
-    // 初始化各人格的数据数组
-    const personalitySeriesData = {};
-    allPersonalities.forEach(personality => {
-        personalitySeriesData[personality] = Array(typeHistoryData.length).fill(0);
-    });
-    
-    // 填充数据 - 按时间点和人格类型计算数量
-    typeHistoryData.forEach((record, recordIndex) => {
-        record.data.forEach(item => {
-            if (personalitySeriesData[item.name] !== undefined) {
-                personalitySeriesData[item.name][recordIndex] = item.value;
-            }
-        });
-    });
     
     // 创建系列
     const series = [];
     
-    allPersonalities.forEach(personality => {
+    allPersonalities.forEach((personality, index) => {
         // 获取对应颜色
         const color = colorMap[personality] || defaultColor;
         
+        // 构建 [时间戳, 数值] 格式的数据
+        const seriesData = typeHistoryData.map(record => {
+            const item = record.data.find(d => d.name === personality);
+            return [record.timestamp, item ? item.value : 0];
+        });
+        
+        // 修改 Series 配置，采用"无边框流体风格"
         series.push({
             name: personality,
-            type: 'bar',
+            type: 'line',
             stack: '总量',
-            data: personalitySeriesData[personality],
-            itemStyle: { color: color },
-            barGap: 0, // 相邻柱状条间距为0
-            label: {
-                show: false,
-                position: 'top',
-                fontSize: 8,
-                formatter: '{c}'
+            data: seriesData,
+            z: 50 - 1 - index,
+            itemStyle: { 
+                color: color, 
+                // borderColor: '#fff', 
+                // borderWidth: 1,
+            },
+            
+            // 关键修改：隐藏默认的点和线，打造纯净的流体感
+            symbol: 'none', 
+            symbolSize: 6,
+            smooth: true,
+            
+            areaStyle: {
+                opacity: 0.8 // 提高不透明度，让色块更实
+            },
+            lineStyle: {
+                width: 0, // 隐藏线条
+            },
+            
+            // 只有鼠标悬浮时才显示点和高亮
+            emphasis: {
+                focus: 'series',
+                lineStyle: { width: 1, color: '#fff' } // 高亮时显示细白线边界
             }
         });
+    });
+    
+    // 4. 添加一个辅助散点系列，用于在底部标记"有数据的时间点"
+    // 这样用户一眼就能看出哪些日期是有真实数据的，哪些是插值连线
+    series.push({
+        name: '数据录入点',
+        type: 'scatter',
+        symbol: 'circle', // 使用空心圆（透明圆+描边）
+        symbolSize: 6, // 稍微大一点,
+        symbolOffset: [.5, .5], // 克服渲染时的微小偏移
+        itemStyle: {
+            color: 'transparent', // 透明圆
+            borderColor: '#333', // 深灰色边框
+            borderWidth: 1,
+            opacity: 1,
+        },
+        // 数据格式：[时间戳, 0]，即贴在 X 轴上
+        data: typeHistoryData.map(record => [record.timestamp, 0]),
+        z: 50, // 确保显示在最上层
+        tooltip: {
+            show: false // 不需要显示具体的 tooltip，因为其他系列已经有了
+        }
     });
     
     const trendOption = {
@@ -777,16 +834,22 @@ if (typeHistoryData && typeHistoryData.length > 1) {
         tooltip: {
             trigger: 'axis',
             axisPointer: {
-                type: 'shadow'
+                type: 'cross',
+                label: {
+                    backgroundColor: '#6a7985'
+                }
             },
             formatter: function (params) {
-                let result = params[0].axisValueLabel + '<br/>';
+                // 格式化时间
+                const date = new Date(params[0].value[0]);
+                let result = `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}<br/>`;
+                
                 // 按系列值从大到小排序
-                params.sort((a, b) => b.value - a.value);
+                params.sort((a, b) => b.value[1] - a.value[1]);
                 params.forEach(param => {
-                    if (param.value > 0) {
+                    if (param.value[1] > 0) {
                         result += `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${param.color};"></span>`;
-                        result += `${param.seriesName}: ${param.value}人<br/>`;
+                        result += `${param.seriesName}: ${param.value[1]}人<br/>`;
                     }
                 });
                 return result;
@@ -795,7 +858,7 @@ if (typeHistoryData && typeHistoryData.length > 1) {
         legend: {
             type: 'scroll',
             bottom: 0,
-            data: allPersonalities,
+            data: [...allPersonalities, '数据录入点'],
             textStyle: {
                 fontSize: 10
             },
@@ -818,19 +881,24 @@ if (typeHistoryData && typeHistoryData.length > 1) {
             containLabel: true
         },
         xAxis: {
-            type: 'category',
-            data: dates,
+            type: 'time', // 使用时间轴
+            minInterval: 3600 * 24 * 1000, // 强制最小刻度间隔为 1 天
             axisLabel: {
                 fontSize: 12,
-                rotate: 45,
-                interval: 0
+                formatter: '{yy}.{MM}.{dd}',
+                hideOverlap: true,
+                showMaxLabel: true, // 强制显示最大值标签，防止最后一个日期被隐藏
+                showMinLabel: true,  // 强制显示最小值标签
+                margin: 10,
             },
             axisLine: {
                 show: true
             },
             axisTick: {
-                show: true
-            }
+                show: true,
+                length: 6,
+            },
+            boundaryGap: false
         },
         yAxis: {
             type: 'value',

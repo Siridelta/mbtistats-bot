@@ -92,7 +92,7 @@
     },
     "type_history_data": [
         {
-            "timestamp": 1766045826791,
+            "timestamp": 1765945826791,
             "data": [
                 {
                     "name": "INTP",
@@ -370,7 +370,7 @@
     ],
     "trait_history_data": [
         {
-            "timestamp": 1766045826791,
+            "timestamp": 1765945826791,
             "data": {
                 "EI": {
                     "I": 40,
