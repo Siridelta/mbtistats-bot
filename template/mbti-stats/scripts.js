@@ -249,7 +249,7 @@ const pieOption = {
             name: 'MBTI 分布',
             type: 'pie',
             radius: ['35%', '60%'],
-            center: ['50%', '50%'],
+            center: ['50%', '52%'],
             avoidLabelOverlap: true,
             itemStyle: {
                 borderRadius: 5,
@@ -316,8 +316,8 @@ const barOption = {
     grid: {
         left: '20%',
         right: '15%',
-        top: '20%',
-        bottom: '5%',
+        top: '10%',
+        bottom: '0%',
         containLabel: true
     },
     xAxis: {
@@ -488,8 +488,8 @@ if (typeHistoryData && typeHistoryData.length > 1) {
         grid: {
             left: '5%',
             right: '5%',
-            bottom: '5%',
-            top: '15%',
+            bottom: '8%',
+            top: '13%',
             containLabel: true
         },
         xAxis: {
@@ -776,20 +776,16 @@ if (typeHistoryData && typeHistoryData.length > 1) {
             z: 50 - 1 - index,
             itemStyle: { 
                 color: color, 
-                // borderColor: '#fff', 
-                // borderWidth: 1,
             },
             
-            // 关键修改：隐藏默认的点和线，打造纯净的流体感
-            symbol: 'none', 
             symbolSize: 6,
             smooth: true,
             
             areaStyle: {
-                opacity: 0.8 // 提高不透明度，让色块更实
+                opacity: 0.6
             },
             lineStyle: {
-                width: 0, // 隐藏线条
+                width: 2,
             },
             
             // 只有鼠标悬浮时才显示点和高亮
@@ -798,28 +794,6 @@ if (typeHistoryData && typeHistoryData.length > 1) {
                 lineStyle: { width: 1, color: '#fff' } // 高亮时显示细白线边界
             }
         });
-    });
-    
-    // 4. 添加一个辅助散点系列，用于在底部标记"有数据的时间点"
-    // 这样用户一眼就能看出哪些日期是有真实数据的，哪些是插值连线
-    series.push({
-        name: '数据录入点',
-        type: 'scatter',
-        symbol: 'circle', // 使用空心圆（透明圆+描边）
-        symbolSize: 6, // 稍微大一点,
-        symbolOffset: [.5, .5], // 克服渲染时的微小偏移
-        itemStyle: {
-            color: 'transparent', // 透明圆
-            borderColor: '#333', // 深灰色边框
-            borderWidth: 1,
-            opacity: 1,
-        },
-        // 数据格式：[时间戳, 0]，即贴在 X 轴上
-        data: typeHistoryData.map(record => [record.timestamp, 0]),
-        z: 50, // 确保显示在最上层
-        tooltip: {
-            show: false // 不需要显示具体的 tooltip，因为其他系列已经有了
-        }
     });
     
     const trendOption = {
@@ -858,7 +832,7 @@ if (typeHistoryData && typeHistoryData.length > 1) {
         legend: {
             type: 'scroll',
             bottom: 0,
-            data: [...allPersonalities, '数据录入点'],
+            data: [...allPersonalities],
             textStyle: {
                 fontSize: 10
             },
@@ -877,7 +851,7 @@ if (typeHistoryData && typeHistoryData.length > 1) {
             left: '5%',
             right: '5%',
             bottom: '5%',
-            top: '15%',
+            top: '13%',
             containLabel: true
         },
         xAxis: {
