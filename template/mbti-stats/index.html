@@ -3,7 +3,6 @@
 
 <head>
     <meta charset="utf-8">
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -38,8 +37,8 @@
                 <div id="bar-chart-container"></div>
             </div>
             <!-- 将16人的历史趋势移到4色人格历史趋势上方 -->
-            <div class="section-row" id="trait-trend-chart-container"></div>
-            <div class="section-row" id="trend-chart-container"></div>
+            <div class="section-row" id="type16-trend-chart-container"></div>
+            <div class="section-row" id="type4-trend-chart-container"></div>
             <div class="section-row" id="history-table-container"></div>
         </div>
         
@@ -63,14 +62,17 @@
             <div id="trait-history-table-container"></div>
         </div>
     </div>
-    <script>
+    <script type="module">
         // Jinja2 注入的数据
-        var _typeRawData = {{ type_data | tojson }};
-        var _traitRawData = {{ trait_data | tojson }};
-        var _typeHistoryData = {{ type_history_data | tojson }};
-        var _traitHistoryData = {{ trait_history_data | tojson }};
+        const typeRawData = {{ type_data | tojson }};
+        const traitRawData = {{ trait_data | tojson }};
+        const typeHistoryData = {{ type_history_data | tojson }};
+        const traitHistoryData = {{ trait_history_data | tojson }};
+
+        import { setupCharts } from './scripts.mjs';
+
+        setupCharts({typeRawData, traitRawData, typeHistoryData, traitHistoryData});
     </script>
-    <script src="scripts.js"></script>
 </body>
 
 </html>
