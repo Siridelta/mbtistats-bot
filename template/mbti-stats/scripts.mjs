@@ -219,9 +219,6 @@ export function setupCharts(data) {
             accumValue += item.value;
         });
 
-        // 2.1 去掉饼图数据中 value 为 0 的项
-        pieData = pieData.filter(item => item.value > 0);
-
         // 饼图选项
         const pieOption = {
             backgroundColor: '#ffffff',
@@ -286,7 +283,8 @@ export function setupCharts(data) {
                         length2: 15,
                         smooth: true
                     },
-                    data: pieData
+                    // 去掉饼图数据中 value 为 0 的项；由于 pieData 也共享到后面，后面 barData 不能过滤，因此不能修改 pieData，只能在这里过滤。
+                    data: pieData.filter(item => item.value > 0)
                 }
             ]
         };
@@ -320,8 +318,8 @@ export function setupCharts(data) {
                 formatter: '{b}: {c}人'
             },
             grid: {
-                left: '10%',
-                right: '10%',
+                left: '8%',
+                right: '15%',
                 top: '10%',
                 bottom: '0%',
                 containLabel: true
