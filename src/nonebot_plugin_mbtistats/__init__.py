@@ -1,11 +1,14 @@
 import json
 import time
 from pathlib import Path
-from nonebot import on_command, logger
+from nonebot import on_command, logger, require
 from nonebot.rule import to_me
 from nonebot.adapters import Bot, Event
 from nonebot.internal.matcher import Matcher
 from datetime import datetime
+
+# 确保依赖的 scheduler 插件已加载
+require("nonebot_plugin_apscheduler")
 
 # 导入拆分后的模块
 from .analyze import (

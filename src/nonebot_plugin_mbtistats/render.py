@@ -9,10 +9,8 @@ from jinja2 import Environment, FileSystemLoader
 from .playwright_context import PlaywrightContext
 from nonebot import logger
 
-# 模板根目录: template/
-TEMPLATE_ROOT = \
-    Path(__file__).parent.parent.parent \
-    / "template"
+# 模板根目录: 现在位于插件包内部 template/
+TEMPLATE_ROOT = Path(__file__).parent / "template"
 
 
 def find_free_port() -> int:

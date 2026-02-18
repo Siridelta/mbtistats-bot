@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html style="height: 100%">
+
+<head>
+    <meta charset="utf-8">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #f3f4f6;
+            font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+        }
+
+        /* 增加高度以容纳4个图表 */
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: white;
+            padding: 40px;
+            border-radius: 0px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 600px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            margin-top: 0;
+        }
+
+        .meta {
+            color: #666;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        /* 列表布局 */
+        .charts-list {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 520px;
+            justify-content: space-between; /* 均匀分布 */
+        }
+
+        .chart-item {
+            width: 100%;
+            flex: 1; /* 平分高度 */
+            /* 去除卡片样式，使其融入背景 */
+            background: transparent;
+            /* border-bottom: 1px solid #f0f0f0; */
+        }
+        
+        .chart-item:last-child {
+            border-bottom: none;
+        }
+
+        .sep {
+            width: 1px;
+            height: 14px;
+            background-color: #ccc;
+            margin: 2px 14px 0px;
+            display: inline-block;
+        }
+    </style>
+</head>
+
+<body style="height: 100%; margin: 0">
+    <div class="container">
+        <h1>MBTI 特质分布统计 (开发预览)</h1>
+        <div class="meta">
+            前端调试测试群
+            <div class="sep"></div>
+            172 人
+            <div class="sep"></div>
+            <span id="timestamp"></span>
+        </div>
+        
+        <div class="charts-list">
+            <div id="chart-ei" class="chart-item"></div>
+            <div id="chart-ns" class="chart-item"></div>
+            <div id="chart-tf" class="chart-item"></div>
+            <div id="chart-jp" class="chart-item"></div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        const date = new Date();
+        document.getElementById("timestamp").textContent = `
+            ${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${date.toLocaleTimeString()}
+        `;
+        // Jinja2 数据注入
+        // rawData 结构: 
+        /*
+        {
+            "EI": {"E": 10, "I": 20, "X": 1},
+            "SN": {"S": 15, "N": 15, "X": 1},
+            "TF": {"T": 12, "F": 18, "X": 1},
+            "JP": {"J": 14, "P": 16, "X": 1}
+        }
+        */
+        const rawData = {"EI": {"E": 10, "I": 20, "X": 0}, "JP": {"J": 14, "P": 16, "X": 1}, "SN": {"N": 15, "S": 15, "X": 1}, "TF": {"F": 18, "T": 12, "X": 0}};
+
+        // 4个维度的配置
+        // 颜色灵感来自 16Personalities 风格，但为了可见性进行了调整
+        const traitConfig = [
+            {
+                id: 'chart-ei',
+                rawKey: 'EI',
+                traits: ['I', 'E', 'X'], // 内向 (I) / 外向 (E)
+                labels: ['I', 'E', '未知'],
+            },
+            {
+                id: 'chart-ns',
+                rawKey: 'SN',
+                traits: ['N', 'S', 'X'], // 直觉 (N) / 实感 (S)
+                labels: ['N', 'S', '未知'],
+            },
+            {
+                id: 'chart-tf',
+                rawKey: 'TF',
+                traits: ['F', 'T', 'X'], // 情感 (F) / 思考 (T)
+                labels: ['F', 'T', '未知'],
+            },
+            {
+                id: 'chart-jp',
+                rawKey: 'JP',
+                traits: ['P', 'J', 'X'], // 展望 (P) / 计划 (J)
+                labels: ['P', 'J', '未知'],
+            }
+        ];
+
+        // 基于连贯的方案重新分配颜色
+        traitConfig[0].colors = ['#EEAB7E', '#8EBBE6', '#ccc']; // I(橙色), E(蓝色)
+        traitConfig[1].colors = ['#89D18B', '#FFD863', '#ccc']; // N(绿色), S(黄色)
+        traitConfig[2].colors = ['#d4a5a5', '#9e9ac8', '#ccc']; // F(微红), T(微紫)
+        traitConfig[3].colors = ['#80b1d3', '#fdb462', '#ccc']; // P(蓝色), J(橙色)
+        
+        // 初始化函数
+        traitConfig.forEach(cfg => {
+            initChart(cfg);
+        });
+
+        function initChart(cfg) {
+            const dom = document.getElementById(cfg.id);
+            if (!dom) return;
+            
+            const myChart = echarts.init(dom);
+            
+            const trait1 = cfg.traits[0]; // e.g. 'I'
+            const trait2 = cfg.traits[1]; // e.g. 'E'
+            const traitX = cfg.traits[2]; // e.g. 'X'
+
+            const name1 = cfg.labels[0];
+            const name2 = cfg.labels[1];
+            const nameX = cfg.labels[2];
+            
+            const data1 = {count: rawData[cfg.rawKey][trait1] || 0};
+            const data2 = {count: rawData[cfg.rawKey][trait2] || 0};
+            const dataX = {count: rawData[cfg.rawKey][traitX] || 0};
+
+            // 饼图数据
+            const pieData = [
+                { value: data1.count, name: name1, itemStyle: { color: cfg.colors[0] }, label: { color: '#333' } },
+                { value: data2.count, name: name2, itemStyle: { color: cfg.colors[1] }, label: { color: '#333' } },
+                { value: dataX.count, name: nameX, itemStyle: { color: cfg.colors[2] }, label: { color: '#333' } }
+            ];
+
+            // "未知"项为 0 时不显示
+            if (dataX.count === 0) {
+                pieData.pop();
+            }
+            
+            // 条形图数据 (水平)
+            // 让我们把 Trait1 放在顶部。所以如果轴是标准的，数组应该是 [Trait2, Trait1]。
+            
+            const barData = [data2.count, data1.count]; 
+            const categories = [trait2, trait1];
+            const barColors = [cfg.colors[1], cfg.colors[0]];
+            
+            const option = {
+                textStyle: {
+                    fontFamily: 'Noto Sans SC, Microsoft YaHei, sans-serif'
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{b}: {c} ({d}%)'
+                },
+                // 调整 Grid 位置以适应左饼右条布局
+                grid: {
+                    left: '42%',  // 给左侧饼图留出空间
+                    right: '10%',   // 右侧留白
+                    top: '27%',
+                    bottom: '10%',
+                    // height: '50%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'value',
+                    show: false,
+                    splitLine: { show: false }
+                },
+                yAxis: {
+                    type: 'category',
+                    data: categories,
+                    axisLine: { show: false },
+                    axisTick: { show: false },
+                    axisLabel: {
+                        fontSize: 16,
+                        fontWeight: 'bold',
+                        color: '#555',
+                        margin: 15
+                    }
+                },
+                series: [
+                    // 饼图
+                    {
+                        name: 'Distribution',
+                        type: 'pie',
+                        // 缩小饼图以容纳外部标签
+                        radius: ['0%', '50%'],
+                        center: ['19.5%', '50%'], // 位于左侧区域的中心
+                        avoidLabelOverlap: true,
+                        itemStyle: {
+                            borderRadius: 4,
+                            borderColor: '#fff',
+                            borderWidth: 2
+                        },
+                        label: {
+                            show: true,
+                            position: 'outside', // 改为外部显示
+                            formatter: function (params) {
+                                const name = params.name;
+                                const percent = params.percent >= 1 ? params.percent.toFixed(0)
+                                    : params.percent >= 0.1 ? params.percent.toFixed(1)
+                                        : params.percent.toFixed(2);
+                                if (name === '未知') {
+                                    return `{weakTitle|${name}}\n{sub|${percent}%}`;
+                                } else {
+                                    return `{title|${name}}\n{sub|${percent}%}`;
+                                }
+                            },
+                            rich: {
+                                title: {
+                                    color: '#333',
+                                    fontSize: 14,
+                                    fontWeight: 'bold',
+                                },
+                                weakTitle: {
+                                    color: '#333',
+                                    fontSize: 14,
+                                    fontWeight: 'normal',
+                                },
+                                sub: {
+                                    color: '#666',
+                                    fontSize: 12,
+                                    fontWeight: 'normal',
+                                }
+                            }
+                        },
+                        labelLine: {
+                            show: true,
+                            length: 15,
+                            length2: 10
+                        },
+                        emphasis: {
+                            label: {
+                                show: true,
+                                fontSize: 16,
+                                fontWeight: 'bold'
+                            }
+                        },
+                        data: pieData
+                    },
+                    // 条形图
+                    {
+                        type: 'bar',
+                        data: barData.map((val, idx) => ({
+                            value: val,
+                            itemStyle: {
+                                color: barColors[idx],
+                                borderRadius: [5, 5, 5, 5]
+                            }
+                        })),
+                        barWidth: 20,
+                        label: {
+                            show: true,
+                            position: 'right',
+                            formatter: '{c}',
+                            color: '#666',
+                            fontSize: 14,
+                            fontWeight: 'bold'
+                        },
+                        // 条形背景
+                        showBackground: true,
+                        backgroundStyle: {
+                            color: 'rgba(180, 180, 180, 0.1)',
+                            borderRadius: [5, 5, 5, 5]
+                        }
+                    }
+                ]
+            };
+            
+            myChart.setOption(option);
+        }
+    </script>
+</body>
+
+</html>
