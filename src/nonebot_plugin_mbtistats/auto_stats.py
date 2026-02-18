@@ -15,6 +15,9 @@ from nonebot.adapters import Bot
 require("nonebot_plugin_apscheduler")
 from nonebot_plugin_apscheduler import scheduler
 
+# 导入配置和路径
+from .config import AUTO_STATS_DISABLED_FILE, get_group_cache_paths
+
 # 导入主动模式工具函数
 from .proactive import (
     get_group_members_proactive,
@@ -48,21 +51,18 @@ def get_disabled_groups() -> set[str]:
     
     策略：
     1. 默认所有群都启用自动统计
-    2. 检查 data/v1/auto_stats_disabled.txt 文件
+    2. 检查 data/mbtistats/auto_stats_disabled.txt 文件
     3. 文件中的群 ID 将被禁用自动统计
     
     Returns:
         禁用的群 ID 集合
     """
-    config_path = Path("data/v1/auto_stats_disabled.txt")
-
-    if not config_path.exists():
-        config_path.parent.mkdir(parents=True, exist_ok=True)
-        config_path.touch()
+    if not AUTO_STATS_DISABLED_FILE.exists():
+        AUTO_STATS_DISABLED_FILE.touch()
         return set()
     
     try:
-        content = config_path.read_text(encoding="utf-8")
+        content = AUTO_STATS_DISABLED_FILE.read_text(encoding="utf-8")
         groups = {line.strip() for line in content.split("\n") if line.strip()}
         return groups
     except Exception as e:
@@ -107,11 +107,10 @@ async def perform_auto_stats(bot, group_id: str, debug_mode: bool = False):
         group_name = await get_group_name_proactive(bot, group_id)
         
         # 4. 更新历史数据
-        data_cache_path = f"data/v1/cache-charts/{group_id}/mbti-stats.json"
-        img_cache_path = f"data/v1/cache-charts/{group_id}/mbti-stats.png"
+        img_cache_path, data_cache_path = get_group_cache_paths(group_id)
         
         history_data = []
-        if Path(data_cache_path).exists():
+        if data_cache_path.exists():
             try:
                 with open(data_cache_path, "r", encoding="utf-8") as f:
                     content = json.load(f)
@@ -146,7 +145,6 @@ async def perform_auto_stats(bot, group_id: str, debug_mode: bool = False):
         if data_updated:
             history_data.append(current_record)
             
-            Path(data_cache_path).parent.mkdir(parents=True, exist_ok=True)
             with open(data_cache_path, "w", encoding="utf-8") as f:
                 json.dump(history_data, f, ensure_ascii=False, indent=2)
             

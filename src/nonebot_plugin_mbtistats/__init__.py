@@ -20,6 +20,7 @@ from .analyze import (
 from .render import render_chart, use_cache, write_cache
 from .get_group_data import get_group_members, get_group_id, get_group_name
 from .send_image import send_image
+from .config import get_group_cache_paths
 
 # 导入自动统计模块（会自动注册定时任务）
 from . import auto_stats
@@ -79,13 +80,12 @@ async def handle_mbti_stats(bot: Bot, event: Event, matcher: Matcher):
     # 2. 判断与更新历史数据
     image_bytes = None
 
-    img_cache_path = f"data/v1/cache-charts/{group_id}/mbti-stats.png"
-    # 统一使用 mbti-stats.json 作为历史记录和数据源
-    data_cache_path = f"data/v1/cache-charts/{group_id}/mbti-stats.json"
+    # 获取缓存路径
+    img_cache_path, data_cache_path = get_group_cache_paths(group_id)
     
     # 加载历史数据 (现在是 List 结构)
     history_data = []
-    if Path(data_cache_path).exists():
+    if data_cache_path.exists():
         try:
             with open(data_cache_path, "r", encoding="utf-8") as f:
                 content = json.load(f)
@@ -126,8 +126,6 @@ async def handle_mbti_stats(bot: Bot, event: Event, matcher: Matcher):
     if data_updated:
         history_data.append(current_record)
         try:
-            # 确保目录存在
-            Path(data_cache_path).parent.mkdir(parents=True, exist_ok=True)
             with open(data_cache_path, "w", encoding="utf-8") as f:
                 json.dump(history_data, f, ensure_ascii=False, indent=4)
         except Exception as e:

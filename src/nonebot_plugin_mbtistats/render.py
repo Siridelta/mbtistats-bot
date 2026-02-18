@@ -77,7 +77,7 @@ class TempHTTPServer:
 
 
 async def use_cache(
-    img_cache_path: str,
+    img_cache_path: Path,
 ) -> Optional[bytes]:
     """
     使用缓存图片。
@@ -91,7 +91,7 @@ async def use_cache(
 
 
 async def write_cache(
-    img_cache_path: str,
+    img_cache_path: Path,
     img_cache: bytes,
 ) -> None:
     """
