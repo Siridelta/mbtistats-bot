@@ -218,7 +218,7 @@ async def perform_auto_stats(bot, group_id: str, debug_mode: bool = False):
         logger.exception(f"[AutoStats] 群 {group_id} 执行失败: {e}")
 
 
-@scheduler.scheduled_job("cron", hour="*/1", id="auto_mbti_stats")
+@scheduler.scheduled_job("cron", hour="0", id="auto_mbti_stats")
 async def auto_stats_job():
     """
     定时任务：每小时执行一次自动统计
