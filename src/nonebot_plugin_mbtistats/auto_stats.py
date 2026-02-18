@@ -8,7 +8,7 @@ import asyncio
 import json
 from pathlib import Path
 from datetime import datetime
-from nonebot import logger, require, get_driver
+from nonebot import logger, require
 from nonebot.adapters import Bot
 
 # 导入定时任务调度器
@@ -16,7 +16,11 @@ require("nonebot_plugin_apscheduler")
 from nonebot_plugin_apscheduler import scheduler
 
 # 导入配置和路径
-from .config import AUTO_STATS_DISABLED_FILE, get_group_cache_paths
+from .config import (
+    AUTO_STATS_DISABLED_FILE,
+    get_group_cache_paths,
+    plugin_config
+)
 
 # 导入主动模式工具函数
 from .proactive import (
@@ -32,17 +36,24 @@ from .render import render_chart, use_cache, write_cache
 
 
 # ========== 配置 ==========
-# 配置项在 .env 文件中设置：
-# auto_stats_debug=true           # 启用调试模式（不发送图片，只保存到文件）
-# auto_stats_run_on_startup=true  # 启动时立即执行一次统计
+# 新的配置项（使用 mbtistats_ 前缀）：
+# mbtistats_auto_stats_debug=true           # 调试模式（保存图片但不发送）
+# mbtistats_auto_stats_run_on_startup=true  # 启动时立即执行一次统计
+# mbtistats_auto_stats_hour=0               # 定时任务小时（0-23）
+# mbtistats_auto_stats_minute=0             # 定时任务分钟（0-59）
+#
+# 兼容旧配置（即将废弃）：
+# auto_stats_debug=true
+# auto_stats_run_on_startup=true
 
-driver = get_driver()
+# 全局配置变量（优先使用新配置名，兼容旧配置名）
+DEBUG_MODE: bool = plugin_config.mbtistats_auto_stats_debug
+RUN_ON_STARTUP: bool = plugin_config.mbtistats_auto_stats_run_on_startup
+AUTO_STATS_HOUR: int = plugin_config.mbtistats_auto_stats_hour
+AUTO_STATS_MINUTE: int = plugin_config.mbtistats_auto_stats_minute
 
-# 全局配置变量
-DEBUG_MODE: bool = getattr(driver.config, "auto_stats_debug", False)
-RUN_ON_STARTUP: bool = getattr(driver.config, "auto_stats_run_on_startup", False)
-
-logger.info(f"[AutoStats] 模块加载完成 - DEBUG_MODE={DEBUG_MODE}, RUN_ON_STARTUP={RUN_ON_STARTUP}")
+logger.info(f"[AutoStats] 模块加载完成 - DEBUG_MODE={DEBUG_MODE}, RUN_ON_STARTUP={RUN_ON_STARTUP}, "
+            f"SCHEDULE={AUTO_STATS_HOUR:02d}:{AUTO_STATS_MINUTE:02d}")
 
 
 def get_disabled_groups() -> set[str]:
@@ -216,16 +227,14 @@ async def perform_auto_stats(bot, group_id: str, debug_mode: bool = False):
         logger.exception(f"[AutoStats] 群 {group_id} 执行失败: {e}")
 
 
-@scheduler.scheduled_job("cron", hour="0", minute="0", id="auto_mbti_stats")
+@scheduler.scheduled_job("cron", hour=str(AUTO_STATS_HOUR), minute=str(AUTO_STATS_MINUTE), id="auto_mbti_stats")
 async def auto_stats_job():
     """
-    定时任务：每小时执行一次自动统计
+    定时任务：自动统计
     
-    可以通过修改 hour 参数调整频率：
-    - "*/1": 每小时
-    - "*/2": 每 2 小时
-    - "0,12": 每天 0 点和 12 点
-    - "0": 每天 0 点
+    执行时间由配置项控制（默认每天 00:00）：
+    - mbtistats_auto_stats_hour: 小时（0-23）
+    - mbtistats_auto_stats_minute: 分钟（0-59）
     """
     logger.info("[AutoStats] 定时任务开始执行")
     
