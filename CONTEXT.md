@@ -72,8 +72,6 @@ nonebot-plugin-mbtistats/
 
 ### 模板系统
 
-HTML 模板使用 **内联资源**（CSS/JS 通过 Jinja2 `{% include %}` 嵌入），以兼容 Playwright 本地文件渲染。
-
 渲染流程：
 1. Jinja2 渲染模板 → 临时 HTML 文件
 2. 启动临时 HTTP 服务器（端口随机）
