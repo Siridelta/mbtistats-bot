@@ -1,4 +1,5 @@
 import json
+import time
 from pathlib import Path
 from nonebot import on_command, logger
 from nonebot.rule import to_me
@@ -16,6 +17,9 @@ from .analyze import (
 from .render import render_chart, use_cache, write_cache
 from .get_group_data import get_group_members, get_group_id, get_group_name
 from .send_image import send_image
+
+# 导入自动统计模块（会自动注册定时任务）
+from . import auto_stats
 
 # --- 命令定义 ---
 mbti_stats_cmd = on_command("mbti", aliases={"MBTI"}, priority=10, block=True)
@@ -92,7 +96,6 @@ async def handle_mbti_stats(bot: Bot, event: Event, matcher: Matcher):
             history_data = []
     
     # 构造当前数据记录
-    import time
     current_record = {
         "timestamp": int(time.time() * 1000),
         "group_name": group_name,
@@ -103,26 +106,22 @@ async def handle_mbti_stats(bot: Bot, event: Event, matcher: Matcher):
     
     # 对比最后一条历史数据，决定是否追加
     # 为了避免重复记录（比如短时间内重复触发），判断数据是否完全一致，timestamp 字段除外
+    # 对比最后一条数据，避免重复记录
     data_updated = False
     if history_data:
         last_record = history_data[-1]
-
-        last_compare_data = last_record.copy()
-        last_compare_data.pop("timestamp")
-
-        current_compare_data = current_record.copy()
-        current_compare_data.pop("timestamp")
-
-        if last_compare_data != current_compare_data:
+        if datetime.fromtimestamp(last_record["timestamp"] / 1000).date() != datetime.fromtimestamp(current_record["timestamp"] / 1000).date():
             data_updated = True
+        else:
+            last_compare = {k: v for k, v in last_record.items() if k != "timestamp"}
+            current_compare = {k: v for k, v in current_record.items() if k != "timestamp"}
+            if last_compare != current_compare:
+                data_updated = True
     else:
         data_updated = True
     
     if data_updated:
         history_data.append(current_record)
-        # 可选：限制历史记录长度，例如保留最近 100 条
-        if len(history_data) > 100:
-            history_data = history_data[-100:]
         try:
             # 确保目录存在
             Path(data_cache_path).parent.mkdir(parents=True, exist_ok=True)
