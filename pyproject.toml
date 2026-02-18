@@ -37,6 +37,5 @@ nonebot-adapter-onebot = [
 
 [tool.nonebot.plugins]
 "@local" = []
-"nonebot-plugin-apscheduler" = ["nonebot_plugin_apscheduler"]
 "nonebot-plugin-analysis-bilibili" = ["nonebot_plugin_analysis_bilibili"]
 "nonebot-plugin-questionmark" = ["nonebot_plugin_questionmark"]
