@@ -246,8 +246,7 @@ async def auto_stats_job():
         disabled_groups = get_disabled_groups()
         
         # 过滤掉禁用的群
-        # enabled_groups = [g for g in all_groups if g not in disabled_groups]
-        enabled_groups = ['1075254868']
+        enabled_groups = [g for g in all_groups if g not in disabled_groups]
         
         if not enabled_groups:
             logger.debug(f"[AutoStats] Bot {bot.self_id} 没有启用的群，跳过")
@@ -305,15 +304,3 @@ async def auto_stats_on_startup(bot: Bot):
 
 # 延迟导入避免循环依赖
 from nonebot import get_bots
-
-
-
-@driver.on_bot_connect
-async def test_auto_stats_job(bot: Bot):
-    if bot.type != "OneBot V11":
-        return  # 仅在 OneBot V11 适配器上测试
-    import nonebot
-    nonebot.logger.info("正在测试 auto_stats_job 函数...")
-    await asyncio.sleep(5)  # 等待 Bot 启动完成
-    nonebot.logger.info("调用 auto_stats_job 函数...")
-    await auto_stats_job()  # 直接调用 auto_stats_job 函数进行测试
