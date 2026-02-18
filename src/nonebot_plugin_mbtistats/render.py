@@ -7,6 +7,7 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from threading import Thread
 from jinja2 import Environment, FileSystemLoader
 from .playwright_context import PlaywrightContext
+from .config import plugin_config
 from nonebot import logger
 
 # 模板根目录: 现在位于插件包内部 template/
@@ -172,7 +173,7 @@ async def render_chart(
             page.on("pageerror", lambda exc: logger.error(f"[Browser Error] {exc}"))
             
             # 通过 HTTP 加载页面
-            await page.goto(http_url)
+            await page.goto(http_url, timeout=plugin_config.mbtistats_render_timeout * 1000)
             
             # 等待渲染
             try:

@@ -55,6 +55,7 @@ class PluginConfig(BaseModel):
 # 获取插件配置
 plugin_config = get_plugin_config(PluginConfig)
 
+
 # 确定 Bot 根目录
 # sys.path[0] 是 Python 启动时的脚本目录（即 bot.py 所在目录）
 BOT_ROOT = Path(sys.path[0]).resolve()

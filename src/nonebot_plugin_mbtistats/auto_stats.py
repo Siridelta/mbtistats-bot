@@ -41,10 +41,6 @@ from .render import render_chart, use_cache, write_cache
 # mbtistats_auto_stats_run_on_startup=true  # 启动时立即执行一次统计
 # mbtistats_auto_stats_hour=0               # 定时任务小时（0-23）
 # mbtistats_auto_stats_minute=0             # 定时任务分钟（0-59）
-#
-# 兼容旧配置（即将废弃）：
-# auto_stats_debug=true
-# auto_stats_run_on_startup=true
 
 # 全局配置变量（优先使用新配置名，兼容旧配置名）
 DEBUG_MODE: bool = plugin_config.mbtistats_auto_stats_debug

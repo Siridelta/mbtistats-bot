@@ -20,7 +20,7 @@ from .analyze import (
 from .render import render_chart, use_cache, write_cache
 from .get_group_data import get_group_members, get_group_id, get_group_name
 from .send_image import send_image
-from .config import get_group_cache_paths
+from .config import get_group_cache_paths, plugin_config
 
 # 导入自动统计模块（会自动注册定时任务）
 from . import auto_stats
@@ -178,8 +178,8 @@ async def handle_mbti_stats(bot: Bot, event: Event, matcher: Matcher):
             image_bytes = await render_chart(
                 template_mode="mbti-stats",
                 data=data,
-                width=1050,
-                height=2500,  # 增加高度以容纳所有内容
+                width=plugin_config.mbtistats_viewport_width,
+                height=plugin_config.mbtistats_viewport_height,
             )
             await write_cache(img_cache_path, image_bytes)
         else:
@@ -188,8 +188,8 @@ async def handle_mbti_stats(bot: Bot, event: Event, matcher: Matcher):
                 _image_bytes = await render_chart(
                     template_mode="mbti-stats",
                     data=data,
-                    width=1050,
-                    height=2500,  # 增加高度以容纳所有内容
+                    width=plugin_config.mbtistats_viewport_width,
+                    height=plugin_config.mbtistats_viewport_height,
                 )
                 await write_cache(img_cache_path, _image_bytes)
             image_bytes = _image_bytes
