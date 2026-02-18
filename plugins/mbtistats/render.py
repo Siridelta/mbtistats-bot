@@ -9,9 +9,9 @@ from jinja2 import Environment, FileSystemLoader
 from .playwright_context import PlaywrightContext
 from nonebot import logger
 
-# 模板根目录: mbtistats-bot/template
+# 模板根目录: template/
 TEMPLATE_ROOT = \
-    Path(__file__).parent.parent.parent.parent \
+    Path(__file__).parent.parent.parent \
     / "template"
 
 

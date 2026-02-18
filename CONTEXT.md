@@ -189,9 +189,8 @@ docker push $TCR_URL:$VERSION
 ├── .env.onebotv11-wsRev.example  # OneBot v11 反向 WebSocket 环境变量文件示例
 ├── bot.py              # Bot 入口
 ├── debug_frontend.py   # 前端调试工具
-├── mbtistats-bot/      # Bot 插件源码
-│   └── plugins/
-│       └── mbtistats/
+├── plugins/            # Bot 插件源码
+│   └── mbtistats/
 │           ├── __init__.py      # 插件入口 (指令处理、历史数据管理)
 │           ├── analyze.py       # 数据分析逻辑
 │           ├── render.py        # Playwright 渲染逻辑

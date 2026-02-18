@@ -16,13 +16,11 @@ dependencies = [
     "playwright>=1.56.0",
 ]
 
+
 [tool.nonebot]
-plugin_dirs = ["mbtistats-bot/plugins"]
+plugin_dirs = ["plugins"]
 builtin_plugins = ["echo", "single_session"]
-plugins = [
-    "nonebot_plugin_analysis_bilibili",
-    "nonebot_plugin_questionmark"
-]
+
 
 [tool.nonebot.adapters]
 nonebot-adapter-qq = [
@@ -31,7 +29,14 @@ nonebot-adapter-qq = [
 nonebot-adapter-console = [
     { name = "Console", module_name = "nonebot.adapters.console" }
 ]
+nonebot-adapter-onebot = [
+    { name = "OneBot V11", module_name = "nonebot.adapters.onebot.v11" }
+]
 "@local" = []
 
-# [tool.nonebot.plugins]
-# "@local" = []
+
+[tool.nonebot.plugins]
+"@local" = []
+"nonebot-plugin-apscheduler" = ["nonebot_plugin_apscheduler"]
+"nonebot-plugin-analysis-bilibili" = ["nonebot_plugin_analysis_bilibili"]
+"nonebot-plugin-questionmark" = ["nonebot_plugin_questionmark"]

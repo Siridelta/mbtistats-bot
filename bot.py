@@ -1,3 +1,5 @@
+from asyncio import sleep
+import asyncio
 import nonebot
 from nonebot.adapters.qq import Adapter as QQAdapter
 from nonebot.adapters.console import Adapter as ConsoleAdapter
@@ -14,7 +16,6 @@ driver.register_adapter(OneBotV11Adapter)
 
 # 加载插件
 nonebot.load_from_toml("pyproject.toml")
-nonebot.load_builtin_plugins("echo", "single_session")
 
 if __name__ == "__main__":
     nonebot.run()
