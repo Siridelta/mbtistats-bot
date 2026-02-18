@@ -38,7 +38,8 @@ class PlaywrightContext:
         if cls._context is None:
             cls._context = await cls._browser.new_context(
                 device_scale_factor=2,
-                viewport=None 
+                viewport=None,
+                bypass_csp=True  # 绕过 CSP 限制，允许 ES6 module 加载本地文件
             )
         if cls._context is None:
             raise RuntimeError("Playwright Context initialization failed")

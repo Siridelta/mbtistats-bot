@@ -1,8 +1,11 @@
+import asyncio
+import socket
 import uuid
 from pathlib import Path
 from typing import Dict, Any, Optional
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+from threading import Thread
 from jinja2 import Environment, FileSystemLoader
-# 移除旧的 async_playwright 导入，导入新的管理器
 from .playwright_context import PlaywrightContext
 from nonebot import logger
 
@@ -10,6 +13,70 @@ from nonebot import logger
 TEMPLATE_ROOT = \
     Path(__file__).parent.parent.parent.parent \
     / "template"
+
+
+def find_free_port() -> int:
+    """找一个可用的随机端口"""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("", 0))
+        s.listen(1)
+        port = s.getsockname()[1]
+    return port
+
+
+class QuietHTTPHandler(SimpleHTTPRequestHandler):
+    """静默的 HTTP Handler，不切换工作目录，支持 .mjs MIME 类型"""
+    
+    # 扩展 MIME 类型映射
+    extensions_map = {
+        **SimpleHTTPRequestHandler.extensions_map,
+        '.mjs': 'application/javascript',
+        '.js': 'application/javascript',
+    }
+    
+    def __init__(self, *args, root_dir: Path = None, **kwargs):
+        self.root_dir = root_dir
+        super().__init__(*args, **kwargs)
+    
+    def translate_path(self, path):
+        """重写路径转换，使用指定的根目录而不是当前工作目录"""
+        # 移除开头的 /
+        path = path.lstrip('/')
+        # 拼接完整路径
+        return str(self.root_dir / path)
+    
+    def log_message(self, format, *args):
+        pass  # 静默，不输出访问日志
+
+
+class TempHTTPServer:
+    """临时 HTTP 服务器，用于服务模板文件"""
+    
+    def __init__(self, root_dir: Path, port: int = 0):
+        self.root_dir = root_dir
+        self.port = port if port else find_free_port()
+        self.server: Optional[HTTPServer] = None
+        self.thread: Optional[Thread] = None
+        
+    def start(self):
+        """在后台线程启动服务器"""
+        def run_server():
+            # 使用 lambda 传递 root_dir 给 Handler
+            handler = lambda *args, **kwargs: QuietHTTPHandler(*args, root_dir=self.root_dir, **kwargs)
+            self.server = HTTPServer(("localhost", self.port), handler)
+            self.server.serve_forever()
+        
+        self.thread = Thread(target=run_server, daemon=True)
+        self.thread.start()
+        logger.debug(f"[TempHTTPServer] 启动于 http://localhost:{self.port}, 根目录: {self.root_dir}")
+        
+    def stop(self):
+        """停止服务器"""
+        if self.server:
+            self.server.shutdown()
+            self.server.server_close()
+            logger.debug(f"[TempHTTPServer] 已停止")
+
 
 async def use_cache(
     img_cache_path: str,
@@ -24,6 +91,7 @@ async def use_cache(
         img_cache = f.read()
     return img_cache
 
+
 async def write_cache(
     img_cache_path: str,
     img_cache: bytes,
@@ -37,6 +105,7 @@ async def write_cache(
             f.write(img_cache)
     except Exception as e:
         logger.error(f"写入缓存图片失败: {e}")
+
 
 async def render_chart(
     template_mode: str, 
@@ -58,14 +127,12 @@ async def render_chart(
     """
 
     # 1. 准备模板环境
-    # 我们将 TEMPLATE_ROOT 设为 searchpath
     if not TEMPLATE_ROOT.exists():
         logger.error(f"模板目录不存在: {TEMPLATE_ROOT}")
         raise FileNotFoundError(f"Template directory not found: {TEMPLATE_ROOT}")
 
     env = Environment(loader=FileSystemLoader(TEMPLATE_ROOT))
     
-    # 约定：index.html 位于 template_mode 目录下
     template_path = f"{template_mode}/index.html"
     
     try:
@@ -77,56 +144,47 @@ async def render_chart(
     # 2. 渲染 HTML 内容
     html_content = template.render(**data)
 
-    # --- 修改：写入临时文件 ---
-    # 为了解决 Playwright 不允许读取本地资源的问题，我们将渲染后的 HTML 写入到模板目录下的临时文件
-    # 然后使用 page.goto 加载本地文件
-    
-    # 生成临时文件名，避免并发冲突
+    # 3. 写入临时文件
     temp_filename = f"render_{uuid.uuid4().hex}.html"
-    
-    # 输出目录即为模板所在目录，确保相对路径正确
     output_dir = TEMPLATE_ROOT / template_mode
     output_path = output_dir / temp_filename
     
     try:
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(html_content)
-            
-        file_url = output_path.absolute().as_uri()
-        
     except Exception as e:
         logger.error(f"写入临时 HTML 文件失败: {e}")
         raise e
-    # -------------------------
 
-    # 3. 启动浏览器截图
-    # 使用 PlaywrightContext.new_page 替代原本的 async with async_playwright() ...
+    # 4. 启动临时 HTTP 服务器
+    http_server = TempHTTPServer(TEMPLATE_ROOT)
+    http_server.start()
+    await asyncio.sleep(0.5)  # 等待服务器启动
+    
+    # 构建 HTTP URL（相对于模板根目录）
+    http_url = f"http://localhost:{http_server.port}/{template_mode}/{temp_filename}"
+    
     try:
+        # 5. 使用 Playwright 截图
         async with PlaywrightContext.new_page(
             viewport={"width": width, "height": height}
         ) as page:
             
-            # --- 监听控制台日志和页面错误 ---
             page.on("console", lambda msg: logger.info(f"[Browser Console] {msg.text}"))
             page.on("pageerror", lambda exc: logger.error(f"[Browser Error] {exc}"))
-            # -------------------------------
             
-            # 加载页面
-            await page.goto(file_url)
+            # 通过 HTTP 加载页面
+            await page.goto(http_url)
             
             # 等待渲染
-            # 等待 ECharts 的 canvas 出现
             try:
                 await page.wait_for_selector("canvas", timeout=10000)
-                # 额外等待一点时间确保动画完成
                 await page.wait_for_timeout(1000)
             except Exception as e:
                 logger.warning(f"等待 Canvas 超时，尝试直接截图: {e}")
 
             # 截图
-            # 优先截取 .container，如果没找到则截全屏
             try:
-                # 尝试截取特定容器，去掉可能存在的空白边缘
                 element = await page.query_selector(".container")
                 if element:
                     screenshot = await element.screenshot(type="png")
@@ -143,8 +201,10 @@ async def render_chart(
         logger.error(f"Playwright 渲染出错: {e}")
         raise e
     finally:
-        # 清理临时文件
+        # 6. 清理
+        http_server.stop()
         if output_path.exists():
-           output_path.unlink()
-        pass
-
+            try:
+                output_path.unlink()
+            except Exception as e:
+                logger.debug(f"删除临时文件失败: {e}")
