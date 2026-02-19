@@ -20,6 +20,7 @@ nonebot-plugin-mbtistats/
         ├── proactive.py          # 主动 API 调用（获取群列表等）
         ├── render.py             # HTML 模板渲染和图片生成
         ├── send_image.py         # 图片发送工具
+        ├── transform_render_data.py  # 数据转换：后端格式 → 前端渲染格式
         └── template/             # HTML 模板目录
             ├── mbti-stats/       # 主统计图表模板
             ├── trait-stats/      # 特质统计模板（备用）
@@ -35,7 +36,7 @@ nonebot-plugin-mbtistats/
 
 ## 1. 功能概述
 
-本插件用于自动化统计群成员的 MBTI 人格分布。
+本插件用于自动化统计群成员的 MBTI 人格分布，检测群成员昵称中主动标注的 MBTI 类型，并生成统计图表发送到群里
 
 ### 支持的类型格式
 
@@ -49,13 +50,13 @@ nonebot-plugin-mbtistats/
 | 指令 | 功能 |
 |------|------|
 | `/mbti` | 合一指令：同时统计类型和特质，生成综合图表 |
-| `/类型统计` | 仅统计 MBTI 16 类型分布 |
-| `/特质统计` | 仅统计 4 特质维度分布 |
+| `/类型统计` | (暂时废弃)仅统计 MBTI 16 类型分布 |
+| `/特质统计` | (暂时废弃)仅统计 4 特质维度分布 |
 | `/帮助` | 显示帮助信息 |
 
 ### 自动统计
 
-- **频率**: 默认定时执行（可配置 cron）
+- **频率**: 默认每日定时执行（可设置时间）
 - **黑名单**: `data/v1/auto_stats_disabled.txt`（每行一个群号）
 - **去重**: 数据与上次完全一致时不重复发送
 - **调试**: `AUTO_STATS_DEBUG=1` 仅保存图片不发送
@@ -91,7 +92,9 @@ data/v1/
 └── auto_stats_disabled.txt   # 自动统计黑名单
 ```
 
-### 历史数据格式
+### 历史数据格式（MBTI Stats Data）
+
+后端存储格式（`data/v1/{group_id}/stats-data.json`）：
 
 ```json
 [
@@ -99,11 +102,37 @@ data/v1/
     "timestamp": 1704067200000,
     "group_name": "群名称",
     "total_count": 100,
-    "type_data": { "INTP": 15, "ENFP": 10, ... },
-    "trait_data": { "E": 60, "I": 40, "S": 30, "N": 70, ... }
+    "type_data": [
+      {"name": "INTP", "value": 15},
+      {"name": "ENTP", "value": 10},
+      ...
+    ],
+    "trait_data": {
+      "EI": {"E": 60, "I": 40, "X": 5},
+      "SN": {"S": 30, "N": 70, "X": 0},
+      ...
+    }
   }
 ]
 ```
+
+### 渲染数据格式（Render Data）
+
+前端渲染格式（通过 `transform_render_data.py` 转换）：
+
+```json
+{
+  "title": "MBTI 类型与特质分布统计",
+  "group_name": "群名称",
+  "total_count": 100,
+  "type_data": [...],           // 最新类型数据
+  "trait_data": {...},          // 最新特质数据
+  "type_history_data": [...],   // 历史类型趋势
+  "trait_history_data": [...]   // 历史特质趋势
+}
+```
+
+**注意**：后端不再对历史数据进行"每日最后一条"清洗，全量数据传递给前端，由前端决定如何渲染。
 
 ### 待实现：配置项
 
@@ -131,10 +160,23 @@ class Config(BaseModel):
 - `render_chart(template_mode, data, width, height)` → `bytes`
 - `TempHTTPServer`: 临时 HTTP 服务，处理 CORS 和 MIME 类型
 
+### `transform_render_data.py`
+
+数据转换模块，将后端存储格式转换为前端渲染格式：
+
+- `transform_to_render_data(history_data, title, group_name, total_count)` → `render_data`
+  - 接收全量历史数据列表
+  - 提取最新记录作为当前统计数据
+  - 转换历史数据为前端时间序列格式
+- `load_and_transform(stats_data_path, title)` → `render_data | None`
+  - 从文件加载并转换数据
+
 ### `auto_stats.py`
 
 - 使用 `@scheduler.scheduled_job("cron", ...)` 注册定时任务
 - `perform_auto_stats()`: 执行统计逻辑
+  - 使用 `transform_to_render_data()` 转换数据格式
+  - 传递全量历史数据给前端（不再进行"每日最后一条"清洗）
 - 通过 `on_bot_connect` 支持启动时执行
 
 ### `proactive.py`
@@ -157,6 +199,17 @@ uv run bot.py
 ```
 
 编辑插件代码在 `dev-plugins/mbtistats/` 目录内，该目录是独立的 git 仓库（submodule）。
+
+### 前端调试
+
+使用调试脚本预览模板效果：
+
+```bash
+# 在 mbti-stats 模板下调试
+uv run scripts/debug_frontend.py mbti-stats
+```
+
+**mock.json 格式**：模板目录下的 `mock.json` 现在使用**后端数据格式**（时间序列列表），脚本会自动调用 `transform_render_data.py` 转换为前端渲染格式。可以直接从 `data/mbtistats/data/v1/{group_id}/stats-data.json` 复制数据进行调试。
 
 ---
 

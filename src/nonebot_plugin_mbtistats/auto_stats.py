@@ -36,9 +36,10 @@ from .proactive import (
     send_image_to_group_proactive,
 )
 
-# 导入分析和渲染模块
+# 导入分析、渲染和数据转换模块
 from .analyze import analyze_type_stats, analyze_trait_stats
 from .render import render_chart, use_cache, write_cache
+from .transform_render_data import transform_to_render_data
 
 
 # ========== 配置 ==========
@@ -165,36 +166,13 @@ async def perform_auto_stats(bot, group_id: str, debug_mode: bool = False):
         else:
             logger.debug(f"[AutoStats] 群 {group_id} 数据无变化，跳过记录")
         
-        # 5. 准备渲染数据（使用与主动触发相同的逻辑）
-        last_t_per_day = {}
-        def get_day_key(t): return datetime.fromtimestamp(t / 1000).strftime("%Y-%m-%d")
-        for record in history_data:
-            day_key = get_day_key(record["timestamp"])
-            if day_key not in last_t_per_day or last_t_per_day[day_key] < record["timestamp"]:
-                last_t_per_day[day_key] = record["timestamp"]
-        
-        compressed_history_data = [ 
-            record for record in history_data 
-            if record["timestamp"] == last_t_per_day[get_day_key(record["timestamp"])]
-        ]
-        
-        type_history_data = [
-            {"timestamp": record["timestamp"], "data": record["type_data"]}
-            for record in compressed_history_data
-        ]
-        trait_history_data = [
-            {"timestamp": record["timestamp"], "data": record["trait_data"]}
-            for record in compressed_history_data
-        ]
-        data = {
-            "title": "MBTI 类型与特质分布统计",
-            "group_name": group_name,
-            "total_count": type_total_count,
-            "type_data": type_chart_data,
-            "trait_data": trait_chart_data,
-            "type_history_data": type_history_data,
-            "trait_history_data": trait_history_data
-        }
+        # 5. 准备渲染数据（使用数据转换函数，传递全量历史数据）
+        data = transform_to_render_data(
+            history_data=history_data,
+            title="MBTI 类型与特质分布统计",
+            group_name=group_name,
+            total_count=type_total_count,
+        )
         
         # 6. 渲染图片
         # 生成图表缓存路径（带当前时间戳）

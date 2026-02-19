@@ -26,6 +26,7 @@ from .config import (
     get_latest_chart_cache,
     plugin_config
 )
+from .transform_render_data import transform_to_render_data
 
 # 导入自动统计模块（会自动注册定时任务）
 from . import auto_stats
@@ -114,16 +115,17 @@ async def handle_mbti_stats(bot: Bot, event: Event, matcher: Matcher):
     
     # 对比最后一条历史数据，决定是否追加
     # 为了避免重复记录（比如短时间内重复触发），判断数据是否完全一致，timestamp 字段除外
-    # 对比最后一条数据，避免重复记录
+    # 如果数据不一致则追加；如果数据一致，冷却时间为 60 秒
     data_updated = False
     if history_data:
         last_record = history_data[-1]
-        if datetime.fromtimestamp(last_record["timestamp"] / 1000).date() != datetime.fromtimestamp(current_record["timestamp"] / 1000).date():
-            data_updated = True
-        else:
-            last_compare = {k: v for k, v in last_record.items() if k != "timestamp"}
-            current_compare = {k: v for k, v in current_record.items() if k != "timestamp"}
-            if last_compare != current_compare:
+        last_compare = {k: v for k, v in last_record.items() if k != "timestamp"}
+        current_compare = {k: v for k, v in current_record.items() if k != "timestamp"}
+        if last_compare != current_compare:
+            if current_timestamp - last_record["timestamp"] < 60 * 1000:
+                logger.info("数据与上次完全一致且冷却时间未到，不追加记录")
+                data_updated = False
+            else:
                 data_updated = True
     else:
         data_updated = True
@@ -140,42 +142,12 @@ async def handle_mbti_stats(bot: Bot, event: Event, matcher: Matcher):
 
     # 3. 准备渲染数据
     # 注意：history_data 包含了所有历史，包括刚刚可能追加的当前数据
-    # 每天的最后一个时间戳
-    last_t_per_day = {}
-    def get_day_key(t): return datetime.fromtimestamp(t / 1000).strftime("%Y-%m-%d")
-    for record in history_data:
-        day_key = get_day_key(record["timestamp"])
-        if day_key not in last_t_per_day or last_t_per_day[day_key] < record["timestamp"]:
-            last_t_per_day[day_key] = record["timestamp"]
-    
-    compressed_history_data = [ 
-        record for record in history_data 
-        if record["timestamp"] == last_t_per_day[get_day_key(record["timestamp"])]
-    ]
-
-    type_history_data = [
-        {
-            "timestamp": record["timestamp"],
-            "data": record["type_data"]
-        }
-        for record in compressed_history_data
-    ]
-    trait_history_data = [
-        {
-            "timestamp": record["timestamp"],
-            "data": record["trait_data"]
-        }
-        for record in compressed_history_data
-    ]
-    data = {
-        "title": "MBTI 类型与特质分布统计",
-        "group_name": group_name,
-        "total_count": type_total_count,
-        "type_data": type_chart_data,
-        "trait_data": trait_chart_data,
-        "type_history_data": type_history_data,
-        "trait_history_data": trait_history_data
-    }
+    data = transform_to_render_data(
+        history_data=history_data,
+        title="MBTI 类型与特质分布统计",
+        group_name=group_name,
+        total_count=type_total_count,
+    )
     
     # 4. 渲染图片
     # 生成图表缓存路径（带当前时间戳）
