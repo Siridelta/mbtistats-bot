@@ -108,21 +108,6 @@ def get_group_data_path(group_id: str) -> Path:
     return get_group_data_dir(group_id) / "stats-data.json"
 
 
-def get_group_cache_paths(group_id: str) -> tuple[Path, Path]:
-    """
-    获取指定群的缓存文件路径（旧接口，兼容使用）
-    
-    Returns:
-        (img_cache_path, data_cache_path) - 注意 data 路径已弃用
-    """
-    cache_dir = get_group_cache_dir(group_id)
-    img_cache = cache_dir / "mbti-stats.png"
-    # 兼容旧代码，返回数据路径（实际应在 data 目录）
-    data_cache = get_group_data_path(group_id)
-    
-    return img_cache, data_cache
-
-
 def get_chart_cache_path(group_id: str, timestamp: Optional[int] = None) -> Path:
     """
     获取图表缓存图片路径（带时间戳）

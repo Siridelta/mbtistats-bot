@@ -9,8 +9,11 @@ import json
 import time
 from pathlib import Path
 from datetime import datetime
-from nonebot import logger, require
+from nonebot import get_driver, logger, require
 from nonebot.adapters import Bot
+
+# 获取 driver
+driver = get_driver()
 
 # 导入定时任务调度器
 require("nonebot_plugin_apscheduler")

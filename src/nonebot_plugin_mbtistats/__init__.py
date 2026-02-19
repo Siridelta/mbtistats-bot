@@ -22,7 +22,6 @@ from .get_group_data import get_group_members, get_group_id, get_group_name
 from .send_image import send_image
 from .config import (
     get_group_data_path,
-    get_group_cache_paths,
     get_chart_cache_path,
     get_latest_chart_cache,
     plugin_config
