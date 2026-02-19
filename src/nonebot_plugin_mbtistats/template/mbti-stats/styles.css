@@ -146,9 +146,47 @@ h1 {
     height: 100%;
 }
 
-#type4-trend-chart-container, #type16-trend-chart-container {
+#trend-windows-container {
     width: 100%;
-    height: 600px;
+    height: auto;
+    min-height: 120px;
+}
+
+.trend-window-card {
+    width: 100%;
+    margin-bottom: 28px;
+    padding-top: 10px;
+}
+
+.trend-window-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #444;
+    margin-bottom: 10px;
+}
+
+.trend-window-row {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    height: 500px;
+}
+
+.trend-chart-box {
+    flex: 1;
+    height: 100%;
+}
+
+.trend-chart-title {
+    font-size: 14px;
+    font-weight: bold;
+    color: #555;
+    margin-bottom: 6px;
+}
+
+.trend-chart-dom {
+    width: 100%;
+    height: 470px;
 }
 
 #history-table-container, #trait-history-table-container {

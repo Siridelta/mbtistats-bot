@@ -36,9 +36,64 @@
                 <div id="pie-chart-container"></div>
                 <div id="bar-chart-container"></div>
             </div>
-            <!-- 将16人的历史趋势移到4色人格历史趋势上方 -->
-            <div class="section-row" id="type16-trend-chart-container"></div>
-            <div class="section-row" id="type4-trend-chart-container"></div>
+            <!-- 多尺度趋势图容器（静态 4 窗口 * 2 图） -->
+            <div class="section-row" id="trend-windows-container">
+                <div class="trend-window-card" id="trend-window-week">
+                    <div class="trend-window-title">一周趋势图</div>
+                    <div class="trend-window-row">
+                        <div class="trend-chart-box">
+                            <div class="trend-chart-title">16人格数量变化趋势</div>
+                            <div class="trend-chart-dom" id="trend-week-type16"></div>
+                        </div>
+                        <div class="trend-chart-box">
+                            <div class="trend-chart-title">四色人格历史趋势</div>
+                            <div class="trend-chart-dom" id="trend-week-type4"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="trend-window-card" id="trend-window-month">
+                    <div class="trend-window-title">一月趋势图</div>
+                    <div class="trend-window-row">
+                        <div class="trend-chart-box">
+                            <div class="trend-chart-title">16人格数量变化趋势</div>
+                            <div class="trend-chart-dom" id="trend-month-type16"></div>
+                        </div>
+                        <div class="trend-chart-box">
+                            <div class="trend-chart-title">四色人格历史趋势</div>
+                            <div class="trend-chart-dom" id="trend-month-type4"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="trend-window-card" id="trend-window-year">
+                    <div class="trend-window-title">一年趋势图</div>
+                    <div class="trend-window-row">
+                        <div class="trend-chart-box">
+                            <div class="trend-chart-title">16人格数量变化趋势</div>
+                            <div class="trend-chart-dom" id="trend-year-type16"></div>
+                        </div>
+                        <div class="trend-chart-box">
+                            <div class="trend-chart-title">四色人格历史趋势</div>
+                            <div class="trend-chart-dom" id="trend-year-type4"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="trend-window-card" id="trend-window-all">
+                    <div class="trend-window-title">全历史记录图</div>
+                    <div class="trend-window-row">
+                        <div class="trend-chart-box">
+                            <div class="trend-chart-title">16人格数量变化趋势</div>
+                            <div class="trend-chart-dom" id="trend-all-type16"></div>
+                        </div>
+                        <div class="trend-chart-box">
+                            <div class="trend-chart-title">四色人格历史趋势</div>
+                            <div class="trend-chart-dom" id="trend-all-type4"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="section-row" id="history-table-container"></div>
         </div>
         
