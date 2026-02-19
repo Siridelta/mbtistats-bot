@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html style="height: 100%">
+
+<head>
+    <meta charset="utf-8">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body style="height: 100%; margin: 0">
+    <div class="container">
+        <h1>MBTI类型统计</h1>
+        <div class="meta">
+            测试群组
+            <div class="sep"></div>
+            100 人
+            <div class="sep"></div>
+            机器人开发 By Siri & 玛画疼
+            <div class="sep"></div>
+            <span id="timestamp"></span>
+        </div>
+        
+        <!-- 图片及文字说明区域 -->
+        <div class="image-description-section">
+            <div class="image-container">
+                <div id="top-personality-image"></div>
+            </div>
+            <div class="description-container">
+                <div id="top-personality-text"></div>
+            </div>
+        </div>
+        
+        <!-- 类型统计部分 -->
+        <div class="section">
+            <div class="section-title">类型统计</div>
+            <div class="top-charts">
+                <div id="pie-chart-container"></div>
+                <div id="bar-chart-container"></div>
+            </div>
+            <!-- 16人的历史趋势 -->
+            <div id="trait-trend-chart-container"></div>
+            <div id="trend-chart-container"></div>
+            <div id="history-table-container"></div>
+        </div>
+        
+        <!-- 特质统计部分 -->
+        <div class="section">
+            <div class="section-title">特质统计</div>
+            <div class="trait-charts-container">
+                <div class="trait-chart-item">
+                    <div id="chart-ei" style="width:100%; height:100%"></div>
+                </div>
+                <div class="trait-chart-item">
+                    <div id="chart-ns" style="width:100%; height:100%"></div>
+                </div>
+                <div class="trait-chart-item">
+                    <div id="chart-tf" style="width:100%; height:100%"></div>
+                </div>
+                <div class="trait-chart-item">
+                    <div id="chart-jp" style="width:100%; height:100%"></div>
+                </div>
+            </div>
+            <div id="trait-history-table-container"></div>
+        </div>
+    </div>
+    <script src="scripts.js"></script>
+</body>
+
+</html>

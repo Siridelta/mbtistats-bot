@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html style="height: 100%">
+
+<head>
+    <meta charset="utf-8">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body style="height: 100%; margin: 0">
+    <div class="container">
+        <h1>MBTI类型统计</h1>
+        <div class="meta">
+            测试群组
+            <div class="sep"></div>
+            100 人
+            <div class="sep"></div>
+            <span id="timestamp"></span>
+        </div>
+        
+        <!-- 图片及文字说明区域 -->
+        <div class="image-description-section">
+            <div class="image-container">
+                <div id="top-personality-image"></div>
+            </div>
+            <div class="description-container">
+                <div id="top-personality-text"></div>
+            </div>
+        </div>
+        
+        <!-- 类型统计部分 -->
+        <div class="section">
+            <div class="section-title">类型统计</div>
+            <div class="top-charts">
+                <div id="pie-chart-container"></div>
+                <div id="bar-chart-container"></div>
+            </div>
+            <!-- 将16人的历史趋势移到4色人格历史趋势上方 -->
+            <div id="trait-trend-chart-container"></div>
+            <div id="trend-chart-container"></div>
+            <div id="history-table-container"></div>
+        </div>
+        
+        <!-- 特质统计部分 -->
+        <div class="section">
+            <div class="section-title">特质统计</div>
+            <div class="trait-charts-container">
+                <div class="trait-chart-item">
+                    <div id="chart-ei" style="width:100%; height:100%"></div>
+                </div>
+                <div class="trait-chart-item">
+                    <div id="chart-ns" style="width:100%; height:100%"></div>
+                </div>
+                <div class="trait-chart-item">
+                    <div id="chart-tf" style="width:100%; height:100%"></div>
+                </div>
+                <div class="trait-chart-item">
+                    <div id="chart-jp" style="width:100%; height:100%"></div>
+                </div>
+            </div>
+            <div id="trait-history-table-container"></div>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 示例数据
+            const typeRawData = [{"name": "INTP", "value": 15}, {"name": "ENTP", "value": 12}, {"name": "INTJ", "value": 10}, {"name": "ENTJ", "value": 8}, {"name": "INFP", "value": 18}, {"name": "ENFP", "value": 20}, {"name": "INFJ", "value": 7}, {"name": "ENFJ", "value": 5}, {"name": "ISTJ", "value": 6}, {"name": "ESTJ", "value": 4}, {"name": "ISFJ", "value": 3}, {"name": "ESFJ", "value": 2}, {"name": "ISTP", "value": 4}, {"name": "ESTP", "value": 3}, {"name": "ISFP", "value": 2}, {"name": "ESFP", "value": 1}];
+            const typeHistoryData = [{"timestamp": "2025-12-15T00:00:00", "data": [{"name": "INTP", "value": 10}, {"name": "ENTP", "value": 8}, {"name": "INTJ", "value": 7}, {"name": "ENTJ", "value": 5}, {"name": "INFP", "value": 12}, {"name": "ENFP", "value": 15}, {"name": "INFJ", "value": 5}, {"name": "ENFJ", "value": 3}, {"name": "ISTJ", "value": 4}, {"name": "ESTJ", "value": 2}, {"name": "ISFJ", "value": 2}, {"name": "ESFJ", "value": 1}, {"name": "ISTP", "value": 3}, {"name": "ESTP", "value": 2}, {"name": "ISFP", "value": 1}, {"name": "ESFP", "value": 1}]}, {"timestamp": "2025-12-16T00:00:00", "data": [{"name": "INTP", "value": 12}, {"name": "ENTP", "value": 10}, {"name": "INTJ", "value": 8}, {"name": "ENTJ", "value": 6}, {"name": "INFP", "value": 15}, {"name": "ENFP", "value": 18}, {"name": "INFJ", "value": 6}, {"name": "ENFJ", "value": 4}, {"name": "ISTJ", "value": 5}, {"name": "ESTJ", "value": 3}, {"name": "ISFJ", "value": 2}, {"name": "ESFJ", "value": 2}, {"name": "ISTP", "value": 3}, {"name": "ESTP", "value": 2}, {"name": "ISFP", "value": 2}, {"name": "ESFP", "value": 1}]}, {"timestamp": "2025-12-17T00:00:00", "data": [{"name": "INTP", "value": 13}, {"name": "ENTP", "value": 11}, {"name": "INTJ", "value": 9}, {"name": "ENTJ", "value": 7}, {"name": "INFP", "value": 16}, {"name": "ENFP", "value": 19}, {"name": "INFJ", "value": 7}, {"name": "ENFJ", "value": 5}, {"name": "ISTJ", "value": 5}, {"name": "ESTJ", "value": 4}, {"name": "ISFJ", "value": 3}, {"name": "ESFJ", "value": 2}, {"name": "ISTP", "value": 4}, {"name": "ESTP", "value": 3}, {"name": "ISFP", "value": 2}, {"name": "ESFP", "value": 1}]}, {"timestamp": "2025-12-18T00:00:00", "data": [{"name": "INTP", "value": 15}, {"name": "ENTP", "value": 12}, {"name": "INTJ", "value": 10}, {"name": "ENTJ", "value": 8}, {"name": "INFP", "value": 18}, {"name": "ENFP", "value": 20}, {"name": "INFJ", "value": 7}, {"name": "ENFJ", "value": 5}, {"name": "ISTJ", "value": 6}, {"name": "ESTJ", "value": 4}, {"name": "ISFJ", "value": 3}, {"name": "ESFJ", "value": 2}, {"name": "ISTP", "value": 4}, {"name": "ESTP", "value": 3}, {"name": "ISFP", "value": 2}, {"name": "ESFP", "value": 1}]}];
+            const traitRawData = {"EI": {"I": 50, "E": 45, "X": 5}, "SN": {"N": 70, "S": 25, "X": 5}, "TF": {"F": 60, "T": 35, "X": 5}, "JP": {"P": 65, "J": 30, "X": 5}};
+            const traitHistoryData = [{"timestamp": "2025-12-15T00:00:00", "data": {"EI": {"I": 40, "E": 35, "X": 5}, "SN": {"N": 60, "S": 20, "X": 5}, "TF": {"F": 50, "T": 30, "X": 5}, "JP": {"P": 55, "J": 25, "X": 5}}}, {"timestamp": "2025-12-16T00:00:00", "data": {"EI": {"I": 45, "E": 40, "X": 5}, "SN": {"N": 65, "S": 20, "X": 5}, "TF": {"F": 55, "T": 30, "X": 5}, "JP": {"P": 60, "J": 25, "X": 5}}}, {"timestamp": "2025-12-17T00:00:00", "data": {"EI": {"I": 48, "E": 42, "X": 5}, "SN": {"N": 68, "S": 22, "X": 5}, "TF": {"F": 58, "T": 32, "X": 5}, "JP": {"P": 62, "J": 28, "X": 5}}}, {"timestamp": "2025-12-18T00:00:00", "data": {"EI": {"I": 50, "E": 45, "X": 5}, "SN": {"N": 70, "S": 25, "X": 5}, "TF": {"F": 60, "T": 35, "X": 5}, "JP": {"P": 65, "J": 30, "X": 5}}}];
+
+            // 显示最多人数的人格类型
+            displayTopPersonality(typeRawData);
+            
+            // 渲染主要图表
+            renderCharts(typeRawData);
+
+            // 绘制历史趋势图
+            drawTypeHistoryChart(typeHistoryData);
+            
+            // 绘制特质趋势图
+            drawTraitTrendChart(typeHistoryData);
+            
+            // 初始化所有特质图表
+            initAllTraitCharts(traitRawData);
+        });
+    </script>
+    <script src="scripts.js"></script>
+</body>
+
+</html>
