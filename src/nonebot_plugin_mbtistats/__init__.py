@@ -122,7 +122,7 @@ async def handle_mbti_stats(bot: Bot, event: Event, matcher: Matcher):
         last_compare = {k: v for k, v in last_record.items() if k != "timestamp"}
         current_compare = {k: v for k, v in current_record.items() if k != "timestamp"}
         if last_compare != current_compare:
-            if current_timestamp - last_record["timestamp"] < 60 * 1000:
+            if current_record["timestamp"] - last_record["timestamp"] < 60 * 1000:
                 logger.info("数据与上次完全一致且冷却时间未到，不追加记录")
                 data_updated = False
             else:
