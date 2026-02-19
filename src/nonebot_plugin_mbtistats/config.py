@@ -55,49 +55,108 @@ class PluginConfig(BaseModel):
 # 获取插件配置
 plugin_config = get_plugin_config(PluginConfig)
 
-
 # 确定 Bot 根目录
 # sys.path[0] 是 Python 启动时的脚本目录（即 bot.py 所在目录）
 BOT_ROOT = Path(sys.path[0]).resolve()
 
 # 数据根目录（优先使用配置，否则用默认）
 if plugin_config.mbtistats_data_dir:
-    DATA_DIR = plugin_config.mbtistats_data_dir.resolve()
+    DATA_ROOT = plugin_config.mbtistats_data_dir.resolve()
 else:
-    DATA_DIR = BOT_ROOT / "data" / "mbtistats"
+    DATA_ROOT = BOT_ROOT / "data" / "mbtistats"
 
-DATA_DIR.mkdir(parents=True, exist_ok=True)
+DATA_ROOT.mkdir(parents=True, exist_ok=True)
 logger.debug(f"[Config] Bot 根目录: {BOT_ROOT}")
-logger.debug(f"[Config] 数据目录: {DATA_DIR}")
+logger.debug(f"[Config] 数据根目录: {DATA_ROOT}")
 
-# 子目录
-V1_DIR = DATA_DIR / "v1"  # 兼容旧数据迁移
-V1_DIR.mkdir(parents=True, exist_ok=True)
+# ========== 数据目录（持久化存储） ==========
+# 结构: data/mbtistats/data/v1/{group_id}/stats-data.json
+DATA_DIR = DATA_ROOT / "data" / "v1"
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-CACHE_DIR = V1_DIR / "cache-charts"
+# ========== 缓存目录（可重建的临时文件） ==========
+# 结构: data/mbtistats/cache/v1/{group_id}/mbti-stats-pic-{timestamp}.png
+CACHE_DIR = DATA_ROOT / "cache" / "v1"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-# 文件路径
-AUTO_STATS_DISABLED_FILE = DATA_DIR / "auto_stats_disabled.txt"
+# 配置文件
+AUTO_STATS_DISABLED_FILE = DATA_ROOT / "auto_stats_disabled.txt"
 AUTO_STATS_DISABLED_FILE.touch(exist_ok=True)
 
 
+def get_group_data_dir(group_id: str) -> Path:
+    """获取指定群的数据目录（用于 JSON 存档）"""
+    group_dir = DATA_DIR / str(group_id)
+    group_dir.mkdir(parents=True, exist_ok=True)
+    return group_dir
+
+
 def get_group_cache_dir(group_id: str) -> Path:
-    """获取指定群的缓存目录"""
-    return CACHE_DIR / str(group_id)
+    """获取指定群的缓存目录（用于图片缓存）"""
+    group_dir = CACHE_DIR / str(group_id)
+    group_dir.mkdir(parents=True, exist_ok=True)
+    return group_dir
+
+
+def get_group_data_path(group_id: str) -> Path:
+    """
+    获取指定群的统计数据文件路径
+    
+    Returns:
+        JSON 数据文件路径 (stats-data.json)
+    """
+    return get_group_data_dir(group_id) / "stats-data.json"
 
 
 def get_group_cache_paths(group_id: str) -> tuple[Path, Path]:
     """
-    获取指定群的缓存文件路径
+    获取指定群的缓存文件路径（旧接口，兼容使用）
     
     Returns:
-        (img_cache_path, data_cache_path)
+        (img_cache_path, data_cache_path) - 注意 data 路径已弃用
     """
-    group_dir = get_group_cache_dir(group_id)
-    group_dir.mkdir(parents=True, exist_ok=True)
-    
-    img_cache = group_dir / "mbti-stats.png"
-    data_cache = group_dir / "mbti-stats.json"
+    cache_dir = get_group_cache_dir(group_id)
+    img_cache = cache_dir / "mbti-stats.png"
+    # 兼容旧代码，返回数据路径（实际应在 data 目录）
+    data_cache = get_group_data_path(group_id)
     
     return img_cache, data_cache
+
+
+def get_chart_cache_path(group_id: str, timestamp: Optional[int] = None) -> Path:
+    """
+    获取图表缓存图片路径（带时间戳）
+    
+    Args:
+        group_id: 群号
+        timestamp: 时间戳（毫秒），不传则使用当前时间
+    
+    Returns:
+        图片缓存路径
+    """
+    if timestamp is None:
+        import time
+        timestamp = int(time.time() * 1000)
+    
+    cache_dir = get_group_cache_dir(group_id)
+    return cache_dir / f"mbti-stats-pic-{timestamp}.png"
+
+
+def get_latest_chart_cache(group_id: str) -> Optional[Path]:
+    """
+    获取指定群最新的图表缓存文件
+    
+    Returns:
+        最新的缓存文件路径，如果没有则返回 None
+    """
+    cache_dir = get_group_cache_dir(group_id)
+    if not cache_dir.exists():
+        return None
+    
+    # 查找所有 mbti-stats-pic-*.png 文件
+    pic_files = list(cache_dir.glob("mbti-stats-pic-*.png"))
+    if not pic_files:
+        return None
+    
+    # 按修改时间排序，返回最新的
+    return max(pic_files, key=lambda p: p.stat().st_mtime)

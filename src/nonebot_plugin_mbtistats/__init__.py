@@ -20,7 +20,13 @@ from .analyze import (
 from .render import render_chart, use_cache, write_cache
 from .get_group_data import get_group_members, get_group_id, get_group_name
 from .send_image import send_image
-from .config import get_group_cache_paths, plugin_config
+from .config import (
+    get_group_data_path,
+    get_group_cache_paths,
+    get_chart_cache_path,
+    get_latest_chart_cache,
+    plugin_config
+)
 
 # 导入自动统计模块（会自动注册定时任务）
 from . import auto_stats
@@ -80,8 +86,8 @@ async def handle_mbti_stats(bot: Bot, event: Event, matcher: Matcher):
     # 2. 判断与更新历史数据
     image_bytes = None
 
-    # 获取缓存路径
-    img_cache_path, data_cache_path = get_group_cache_paths(group_id)
+    # 获取数据文件路径（JSON 存档）
+    data_cache_path = get_group_data_path(group_id)
     
     # 加载历史数据 (现在是 List 结构)
     history_data = []
@@ -173,8 +179,13 @@ async def handle_mbti_stats(bot: Bot, event: Event, matcher: Matcher):
     }
     
     # 4. 渲染图片
+    # 生成图表缓存路径（带当前时间戳）
+    current_timestamp = int(time.time() * 1000)
+    img_cache_path = get_chart_cache_path(group_id, current_timestamp)
+    
     try:
         if data_updated:
+            # 数据有更新，渲染新图片
             image_bytes = await render_chart(
                 template_mode="mbti-stats",
                 data=data,
@@ -183,8 +194,15 @@ async def handle_mbti_stats(bot: Bot, event: Event, matcher: Matcher):
             )
             await write_cache(img_cache_path, image_bytes)
         else:
-            _image_bytes = await use_cache(img_cache_path)
+            # 数据无更新，尝试使用最新缓存
+            latest_cache = get_latest_chart_cache(group_id)
+            if latest_cache:
+                _image_bytes = await use_cache(latest_cache)
+            else:
+                _image_bytes = None
+                
             if _image_bytes is None:
+                # 没有缓存，重新渲染
                 _image_bytes = await render_chart(
                     template_mode="mbti-stats",
                     data=data,

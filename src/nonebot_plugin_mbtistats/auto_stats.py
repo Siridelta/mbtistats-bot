@@ -6,6 +6,7 @@
 
 import asyncio
 import json
+import time
 from pathlib import Path
 from datetime import datetime
 from nonebot import logger, require
@@ -18,7 +19,9 @@ from nonebot_plugin_apscheduler import scheduler
 # 导入配置和路径
 from .config import (
     AUTO_STATS_DISABLED_FILE,
-    get_group_cache_paths,
+    get_group_data_path,
+    get_chart_cache_path,
+    get_latest_chart_cache,
     plugin_config
 )
 
@@ -114,7 +117,7 @@ async def perform_auto_stats(bot, group_id: str, debug_mode: bool = False):
         group_name = await get_group_name_proactive(bot, group_id)
         
         # 4. 更新历史数据
-        img_cache_path, data_cache_path = get_group_cache_paths(group_id)
+        data_cache_path = get_group_data_path(group_id)
         
         history_data = []
         if data_cache_path.exists():
@@ -191,29 +194,43 @@ async def perform_auto_stats(bot, group_id: str, debug_mode: bool = False):
         }
         
         # 6. 渲染图片
+        # 生成图表缓存路径（带当前时间戳）
+        current_timestamp = int(time.time() * 1000)
+        img_cache_path = get_chart_cache_path(group_id, current_timestamp)
+        
         image_bytes = None
         if data_updated:
+            # 数据有更新，渲染新图片
             image_bytes = await render_chart(
                 template_mode="mbti-stats",
                 data=data,
-                width=1050,
-                height=2500,
+                width=plugin_config.mbtistats_viewport_width,
+                height=plugin_config.mbtistats_viewport_height,
             )
             await write_cache(img_cache_path, image_bytes)
         else:
-            _image_bytes = await use_cache(img_cache_path)
+            # 数据无更新，尝试使用最新缓存
+            latest_cache = get_latest_chart_cache(group_id)
+            if latest_cache:
+                _image_bytes = await use_cache(latest_cache)
+            else:
+                _image_bytes = None
+                
             if _image_bytes is None:
+                # 没有缓存，重新渲染
                 _image_bytes = await render_chart(
                     template_mode="mbti-stats",
                     data=data,
-                    width=1050,
-                    height=2500,
+                    width=plugin_config.mbtistats_viewport_width,
+                    height=plugin_config.mbtistats_viewport_height,
                 )
                 await write_cache(img_cache_path, _image_bytes)
             image_bytes = _image_bytes
         
         # 7. 发送图片到群里（调试模式下跳过）
         if debug_mode:
+            # 调试模式下保存到最新缓存路径
+            await write_cache(img_cache_path, image_bytes)
             logger.info(f"[AutoStats] [调试模式] 群 {group_id} 统计图已保存到 {img_cache_path}，跳过发送")
         else:
             await send_image_to_group_proactive(bot, group_id, image_bytes)
