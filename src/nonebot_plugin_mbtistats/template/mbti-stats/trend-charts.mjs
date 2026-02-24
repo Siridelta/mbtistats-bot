@@ -417,35 +417,81 @@ MbtistatsDashboard.prototype.renderTrendCharts = function() {
 
             type16Series.push({
                 name: personality, type: 'line', stack: '总量-非连续', data: layeredArea.nonContinuousData,
+                color,
                 showSymbol: false, smooth: false, clip: true, z: baseZ,
-                lineStyle: { width: 0, opacity: 0 }, areaStyle: { color, opacity: 0.5 },
+                lineStyle: { color, width: 0, opacity: 0 }, areaStyle: { color, opacity: 0.5 },
             });
             type16Series.push({
                 name: personality, type: 'line', stack: '总量-连续', data: layeredArea.continuousData,
+                color,
                 showSymbol: false, smooth: false, clip: true, z: baseZ + 1,
-                lineStyle: { width: 0, opacity: 0 }, areaStyle: { color, opacity: 0.8 },
+                lineStyle: { color, width: 0, opacity: 0 }, areaStyle: { color, opacity: 0.8 },
             });
             type16Series.push({
                 name: personality, type: 'line', data: layeredTopLine.nonContinuousData,
+                color,
                 showSymbol: false, smooth: false, clip: true, z: baseZ + 2,
                 lineStyle: { color: `${color}80`, width: 2 },
             });
             type16Series.push({
                 name: personality, type: 'line', data: layeredTopLine.continuousData,
+                color,
                 showSymbol: false, smooth: false, clip: true, z: baseZ + 3,
                 lineStyle: { color, width: 3 },
             });
             type16Series.push({
                 name: personality, type: 'line', data: layeredTopLine.symbolData,
+                color,
                 showSymbol: true, symbol: 'emptyCircle', symbolSize: TREND_POINT_SIZE_PX,
                 smooth: false, clip: true, z: baseZ + 4,
                 lineStyle: { width: 0, opacity: 0 }, itemStyle: { color },
             });
         });
 
+        // 双列布局下单图宽度较窄，16 个图例横向一行放不下。
+        // 将图例拆成 2 行（每行 8 个，按大类分组），避免出现 1/2 分页。
+        const type16LegendRows = [
+            [
+                "INTP", "ENTP", "INTJ", "ENTJ",  // 分析家
+                "INFP", "ENFP", "INFJ", "ENFJ", // 外交家
+            ],
+            [
+                "ISTJ", "ESTJ", "ISFJ", "ESFJ", // 守护者
+                "ISTP", "ESTP", "ISFP", "ESFP", // 探险家
+            ],
+        ];
+        const type16Legend = type16LegendRows.map((row, rowIndex) => ({
+            type: 'plain',
+            orient: 'horizontal',
+            // 两行使用相同左边界，避免“各行单独居中”导致列错位
+            left: '11%',
+            // 逐行向上偏移，形成稳定 2 行布局
+            bottom: rowIndex * 20,
+            selectedMode: true,
+            itemWidth: 10,
+            itemHeight: 10,
+            itemGap: 4,
+            // 通过固定宽度的 rich 文本单元格，让每个图例项在“格子”内左对齐
+            formatter: (name) => `{legendCell|${name}}`,
+            textStyle: {
+                rich: {
+                    legendCell: {
+                        width: 32,
+                        align: 'left',
+                        lineHeight: 10,
+                        padding: [0, 0, 0, 0],
+                        fontSize: 10,
+                    },
+                },
+            },
+            data: row,
+        }));
+
         type16Chart.setOption({
+            // 显式指定 legend 的调色盘，避免同名多层 series 时回落到默认彩虹色
+            color: allPersonalities.map(type => this.colorMap[type] || this.defaultColor),
             tooltip: { trigger: 'axis', axisPointer: { type: 'cross' }, formatter: tooltipFormatter },
-            legend: { type: 'scroll', bottom: 0, data: allPersonalities, textStyle: { fontSize: 9 }, itemWidth: 10, itemHeight: 10 },
+            legend: type16Legend,
             grid: { left: '6%', right: '6%', bottom: '12%', top: '7%', containLabel: true },
             xAxis: {
                 type: 'time', min: windowDef.start, max: windowDef.end, boundaryGap: false,
@@ -468,14 +514,17 @@ MbtistatsDashboard.prototype.renderTrendCharts = function() {
 
             type4Series.push({
                 name: groupName, type: 'line', data: layered.nonContinuousData,
+                color,
                 showSymbol: false, smooth: false, clip: true, z, lineStyle: { color: `${color}80`, width: 2 },
             });
             type4Series.push({
                 name: groupName, type: 'line', data: layered.continuousData,
+                color,
                 showSymbol: false, smooth: false, clip: true, z: z + 1, lineStyle: { color, width: 3 },
             });
             type4Series.push({
                 name: groupName, type: 'line', data: layered.symbolData,
+                color,
                 showSymbol: true, symbol: 'emptyCircle', symbolSize: TREND_POINT_SIZE_PX,
                 smooth: false, clip: true, z: z + 2,
                 lineStyle: { width: 0, opacity: 0 }, itemStyle: { color },
@@ -483,6 +532,8 @@ MbtistatsDashboard.prototype.renderTrendCharts = function() {
         });
 
         type4Chart.setOption({
+            // 显式指定图例色，保证与四色曲线颜色一致
+            color: groupNames.map(groupName => groupColorMap[groupName] || this.defaultColor),
             tooltip: { trigger: 'axis', axisPointer: { type: 'cross' }, formatter: tooltipFormatter },
             legend: { type: 'scroll', bottom: 0, data: groupNames, textStyle: { fontSize: 11 }, itemWidth: 12, itemHeight: 12 },
             grid: { left: '6%', right: '6%', bottom: '12%', top: '7%', containLabel: true },
