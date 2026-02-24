@@ -1,112 +1,27 @@
-import asyncio
-import socket
 import uuid
+import mimetypes
 from pathlib import Path
 from typing import Dict, Any, Optional
-from http.server import HTTPServer, SimpleHTTPRequestHandler, ThreadingHTTPServer
-from threading import Thread
+from urllib.parse import urlparse, unquote
 from jinja2 import Environment, FileSystemLoader
+from playwright.async_api import Route
 from .playwright_context import PlaywrightContext
 from .config import plugin_config
 from nonebot import logger
 
 # 模板根目录: 现在位于插件包内部 template/
 TEMPLATE_ROOT = Path(__file__).parent / "template"
+VIRTUAL_ORIGIN = "http://mbti.local"
 
 
-def find_free_port() -> int:
-    """找一个可用的随机端口"""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("", 0))
-        s.listen(1)
-        port = s.getsockname()[1]
-    return port
-
-
-class QuietHTTPHandler(SimpleHTTPRequestHandler):
-    """静默的 HTTP Handler，不切换工作目录，支持 .mjs MIME 类型"""
-    # 关键：禁用 HTTP Keep-Alive，避免浏览器长连接导致 shutdown 阶段阻塞。
-    # 在 Windows 场景下，SimpleHTTPRequestHandler + 持久连接更容易出现清理卡住。
-    protocol_version = "HTTP/1.0"
-    
-    # 扩展 MIME 类型映射
-    extensions_map = {
-        **SimpleHTTPRequestHandler.extensions_map,
-        '.mjs': 'application/javascript',
-        '.js': 'application/javascript',
-    }
-    
-    def __init__(self, *args, root_dir: Path = None, **kwargs):
-        self.root_dir = root_dir
-        super().__init__(*args, **kwargs)
-    
-    def translate_path(self, path):
-        """重写路径转换，使用指定的根目录而不是当前工作目录"""
-        # 移除开头的 /
-        path = path.lstrip('/')
-        # 拼接完整路径
-        return str(self.root_dir / path)
-    
-    def log_message(self, format, *args):
-        pass  # 静默，不输出访问日志
-
-
-class TempHTTPServer:
-    """临时 HTTP 服务器，用于服务模板文件"""
-    
-    def __init__(self, root_dir: Path, port: int = 0):
-        self.root_dir = root_dir
-        self.port = port if port else find_free_port()
-        self.server: Optional[HTTPServer] = None
-        self.thread: Optional[Thread] = None
-        
-    def start(self):
-        """在后台线程启动服务器"""
-        def run_server():
-            # 使用 lambda 传递 root_dir 给 Handler
-            def handler(*args, **kwargs):
-                return QuietHTTPHandler(*args, root_dir=self.root_dir, **kwargs)
-            # 使用 ThreadingHTTPServer 避免单请求阻塞 shutdown。
-            self.server = ThreadingHTTPServer(("localhost", self.port), handler)
-            self.server.serve_forever()
-        
-        self.thread = Thread(target=run_server, daemon=True)
-        self.thread.start()
-        logger.debug(f"[TempHTTPServer] 启动于 http://localhost:{self.port}, 根目录: {self.root_dir}")
-        
-    def stop(self, join_timeout: float = 2.0):
-        """
-        停止服务器（带超时兜底，避免阻塞主流程）。
-        """
-        if not self.server:
-            return
-
-        server = self.server
-        thread = self.thread
-
-        # 关键：shutdown 放到独立线程执行，避免主线程被永久阻塞。
-        shutdown_thread = Thread(target=server.shutdown, daemon=True)
-        shutdown_thread.start()
-        shutdown_thread.join(timeout=join_timeout)
-        if shutdown_thread.is_alive():
-            logger.warning("[TempHTTPServer] shutdown 超时，继续执行清理流程")
-
-        try:
-            server.server_close()
-        except Exception as e:
-            logger.warning(f"[TempHTTPServer] server_close 异常: {e}")
-
-        # 线程兜底：避免 server 线程残留导致“看起来卡死”。
-        if thread and thread.is_alive():
-            thread.join(timeout=join_timeout)
-            if thread.is_alive():
-                logger.warning("[TempHTTPServer] 服务器线程未在超时内退出，继续后续流程")
-            else:
-                logger.debug("[TempHTTPServer] 服务器线程已退出")
-
-        self.server = None
-        self.thread = None
-        logger.debug("[TempHTTPServer] 已停止")
+def _guess_content_type(file_path: Path) -> str:
+    """根据文件后缀推断响应 Content-Type。"""
+    if file_path.suffix == ".mjs":
+        return "application/javascript"
+    if file_path.suffix == ".js":
+        return "application/javascript"
+    guessed, _ = mimetypes.guess_type(str(file_path))
+    return guessed or "application/octet-stream"
 
 
 async def use_cache(
@@ -175,36 +90,70 @@ async def render_chart(
     # 2. 渲染 HTML 内容
     html_content = template.render(**data)
 
-    # 3. 写入临时文件
-    temp_filename = f"render_{uuid.uuid4().hex}.html"
-    output_dir = TEMPLATE_ROOT / template_mode
-    output_path = output_dir / temp_filename
-    
-    try:
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(html_content)
-    except Exception as e:
-        logger.error(f"写入临时 HTML 文件失败: {e}")
-        raise e
+    # 3. 使用虚拟站点 URL（由 page.route 拦截并返回内存 HTML + 本地模板静态资源）
+    entry_filename = f"render_{uuid.uuid4().hex}.html"
+    entry_path = f"/{template_mode}/{entry_filename}"
+    http_url = f"{VIRTUAL_ORIGIN}{entry_path}"
 
-    # 4. 启动临时 HTTP 服务器
-    http_server = TempHTTPServer(TEMPLATE_ROOT)
-    http_server.start()
-    await asyncio.sleep(0.5)  # 等待服务器启动
-    
-    # 构建 HTTP URL（相对于模板根目录）
-    http_url = f"http://localhost:{http_server.port}/{template_mode}/{temp_filename}"
-    
     try:
         # 5. 使用 Playwright 截图
         async with PlaywrightContext.new_page(
             viewport={"width": width, "height": height}
         ) as page:
-            
+
             page.on("console", lambda msg: logger.info(f"[Browser Console] {msg.text}"))
             page.on("pageerror", lambda exc: logger.error(f"[Browser Error] {exc}"))
-            
-            # 通过 HTTP 加载页面。使用 domcontentloaded 可以减少等待外部资源导致的阻塞风险。
+
+            async def _route_virtual_files(route: Route):
+                request_url = route.request.url
+                parsed = urlparse(request_url)
+                request_path = unquote(parsed.path)
+
+                # 主入口 HTML 直接从内存返回，不再落盘临时文件。
+                if request_path == entry_path:
+                    await route.fulfill(
+                        status=200,
+                        body=html_content.encode("utf-8"),
+                        headers={
+                            "Content-Type": "text/html; charset=utf-8",
+                            "Cache-Control": "no-cache",
+                            "Access-Control-Allow-Origin": "*",
+                        },
+                    )
+                    return
+
+                relative_path = request_path.lstrip("/")
+                local_path = (TEMPLATE_ROOT / relative_path).resolve()
+
+                # 仅允许访问模板根目录内文件，防止路径穿越。
+                try:
+                    local_path.relative_to(TEMPLATE_ROOT.resolve())
+                except ValueError:
+                    await route.fulfill(status=403, body="Forbidden")
+                    return
+
+                if not local_path.exists() or not local_path.is_file():
+                    await route.fulfill(status=404, body="File not found")
+                    return
+
+                try:
+                    body = local_path.read_bytes()
+                    await route.fulfill(
+                        status=200,
+                        body=body,
+                        headers={
+                            "Content-Type": _guess_content_type(local_path),
+                            "Cache-Control": "no-cache",
+                            "Access-Control-Allow-Origin": "*",
+                        },
+                    )
+                except Exception as e:
+                    logger.error(f"读取模板资源失败 {local_path}: {e}")
+                    await route.fulfill(status=500, body="Internal server error")
+
+            await page.route(f"{VIRTUAL_ORIGIN}/**", _route_virtual_files)
+
+            # 通过虚拟 HTTP URL 加载页面。使用 domcontentloaded 可以减少等待外部资源导致的阻塞风险。
             await page.goto(
                 http_url,
                 timeout=plugin_config.mbtistats_render_timeout * 1000,
@@ -231,15 +180,7 @@ async def render_chart(
                 screenshot = await page.screenshot(full_page=True, type="png")
                 
             return screenshot
-            
+
     except Exception as e:
         logger.error(f"Playwright 渲染出错: {e}")
         raise e
-    finally:
-        # 6. 清理
-        http_server.stop()
-        if output_path.exists():
-            try:
-                output_path.unlink()
-            except Exception as e:
-                logger.debug(f"删除临时文件失败: {e}")
