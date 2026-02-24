@@ -1,8 +1,10 @@
 import { MbtistatsDashboard } from './dashboard-class.mjs';
 
 const DAY_MS = 24 * 3600 * 1000;
+// estimated reference dimensions
 const TREND_CHART_WIDTH_PX = 450;
 const TREND_POINT_SIZE_PX = 6;
+// resolutions depend on them
 const TREND_CONTINUITY_GAP_PX = TREND_POINT_SIZE_PX * 2;
 const TREND_SAMPLE_GAP_PX = 3;
 
@@ -328,7 +330,7 @@ function buildTooltipFormatter() {
     };
 }
 
-function _renderTrendCharts() {
+MbtistatsDashboard.prototype.renderTrendCharts = function() {
     if (!this.typeHistoryData || this.typeHistoryData.length <= 1) {
         this.trendWindowsDom.style.display = 'none';
         return;
@@ -496,5 +498,4 @@ function _renderTrendCharts() {
     if (renderedWindowCount === 0) {
         this.trendWindowsDom.style.display = 'none';
     }
-}
-MbtistatsDashboard.prototype.renderTrendCharts = _renderTrendCharts;
+};

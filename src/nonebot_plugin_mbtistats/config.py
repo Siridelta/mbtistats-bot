@@ -47,7 +47,7 @@ class PluginConfig(BaseModel):
         description="渲染视口宽度"
     )
     mbtistats_viewport_height: int = Field(
-        default=2000,
+        default=1000,
         description="渲染视口高度"
     )
 

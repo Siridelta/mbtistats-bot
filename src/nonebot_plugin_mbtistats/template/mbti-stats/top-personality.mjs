@@ -1,6 +1,6 @@
 import { MbtistatsDashboard } from './dashboard-class.mjs';
 
-function _renderTopPersonality() {
+MbtistatsDashboard.prototype.renderTopPersonality = function() {
     let topPersonality = '';
     let maxCount = 0;
 
@@ -27,5 +27,4 @@ function _renderTopPersonality() {
     img.onerror = function () {
         imageContainer.innerHTML = '<div class="purple-placeholder"></div>';
     };
-}
-MbtistatsDashboard.prototype.renderTopPersonality = _renderTopPersonality;
+};

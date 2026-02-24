@@ -1,6 +1,6 @@
 import { MbtistatsDashboard } from './dashboard-class.mjs';
 
-function _renderTypeSummary() {
+MbtistatsDashboard.prototype.renderTypeSummary = function() {
     let pieData = [];
 
     const typeDataMap = this.typeRawData.reduce((acc, item) => {
@@ -133,5 +133,4 @@ function _renderTypeSummary() {
             },
         ],
     });
-}
-MbtistatsDashboard.prototype.renderTypeSummary = _renderTypeSummary;
+};

@@ -1,4 +1,5 @@
 ﻿import * as echarts from 'https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.esm.min.js';
+
 export class MbtistatsDashboard {
     constructor(data) {
         this.echarts = echarts;

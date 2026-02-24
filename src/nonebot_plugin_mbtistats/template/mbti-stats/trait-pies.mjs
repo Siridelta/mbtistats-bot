@@ -1,6 +1,6 @@
 import { MbtistatsDashboard } from './dashboard-class.mjs';
 
-function _renderTraitPies() {
+MbtistatsDashboard.prototype.renderTraitPies = function() {
     const initTraitChart = (cfg) => {
         let chart;
         switch (cfg.id) {
@@ -73,5 +73,4 @@ function _renderTraitPies() {
     };
 
     this.traitConfig.forEach(cfg => initTraitChart(cfg));
-}
-MbtistatsDashboard.prototype.renderTraitPies = _renderTraitPies;
+};
