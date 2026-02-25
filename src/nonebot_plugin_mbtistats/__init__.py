@@ -49,7 +49,11 @@ async def handle_help(bot: Bot, event: Event, matcher: Matcher):
 
 使用帮助：
 /mbti：统计当前群的 MBTI 类型分布和特质维度分布，并生成统计图。
-/帮助 (或 /help)：显示这条帮助信息。
+/帮助 (或 /help)：显示这条帮助信息，需要 @bot。
+
+/echo [消息内容]：让 bot 原样复读消息内容，需要 @bot。
+/recall [数量]：撤回最近指定数量的机器人消息，默认为 5 条。
+/timer [时长] [消息内容]：设置一个定时器，指定时间后 bot 会发送一条消息提醒你时间到了。[时长]: 例如 "10s", "5m", "2h"。
     """.strip())
 
 @mbti_stats_cmd.handle()
