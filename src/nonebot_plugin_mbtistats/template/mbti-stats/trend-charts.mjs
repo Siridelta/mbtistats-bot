@@ -418,32 +418,32 @@ MbtistatsDashboard.prototype.renderTrendCharts = function() {
             type16Series.push({
                 name: personality, type: 'line', stack: '总量-非连续', data: layeredArea.nonContinuousData,
                 color,
-                showSymbol: false, smooth: false, clip: true, z: baseZ,
+                showSymbol: false, smooth: true, clip: true, z: baseZ,
                 lineStyle: { color, width: 0, opacity: 0 }, areaStyle: { color, opacity: 0.5 },
             });
             type16Series.push({
                 name: personality, type: 'line', stack: '总量-连续', data: layeredArea.continuousData,
                 color,
-                showSymbol: false, smooth: false, clip: true, z: baseZ + 1,
+                showSymbol: false, smooth: true, clip: true, z: baseZ + 1,
                 lineStyle: { color, width: 0, opacity: 0 }, areaStyle: { color, opacity: 0.8 },
             });
             type16Series.push({
                 name: personality, type: 'line', data: layeredTopLine.nonContinuousData,
                 color,
-                showSymbol: false, smooth: false, clip: true, z: baseZ + 2,
+                showSymbol: false, smooth: true, clip: true, z: baseZ + 2,
                 lineStyle: { color: `${color}80`, width: 2 },
             });
             type16Series.push({
                 name: personality, type: 'line', data: layeredTopLine.continuousData,
                 color,
-                showSymbol: false, smooth: false, clip: true, z: baseZ + 3,
+                showSymbol: false, smooth: true, clip: true, z: baseZ + 3,
                 lineStyle: { color, width: 3 },
             });
             type16Series.push({
                 name: personality, type: 'line', data: layeredTopLine.symbolData,
                 color,
                 showSymbol: true, symbol: 'emptyCircle', symbolSize: TREND_POINT_SIZE_PX,
-                smooth: false, clip: true, z: baseZ + 4,
+                smooth: true, clip: true, z: baseZ + 4,
                 lineStyle: { width: 0, opacity: 0 }, itemStyle: { color },
             });
         });
@@ -515,18 +515,18 @@ MbtistatsDashboard.prototype.renderTrendCharts = function() {
             type4Series.push({
                 name: groupName, type: 'line', data: layered.nonContinuousData,
                 color,
-                showSymbol: false, smooth: false, clip: true, z, lineStyle: { color: `${color}80`, width: 2 },
+                showSymbol: false, smooth: true, clip: true, z, lineStyle: { color: `${color}80`, width: 2 },
             });
             type4Series.push({
                 name: groupName, type: 'line', data: layered.continuousData,
                 color,
-                showSymbol: false, smooth: false, clip: true, z: z + 1, lineStyle: { color, width: 3 },
+                showSymbol: false, smooth: true, clip: true, z: z + 1, lineStyle: { color, width: 3 },
             });
             type4Series.push({
                 name: groupName, type: 'line', data: layered.symbolData,
                 color,
                 showSymbol: true, symbol: 'emptyCircle', symbolSize: TREND_POINT_SIZE_PX,
-                smooth: false, clip: true, z: z + 2,
+                smooth: true, clip: true, z: z + 2,
                 lineStyle: { width: 0, opacity: 0 }, itemStyle: { color },
             });
         });
