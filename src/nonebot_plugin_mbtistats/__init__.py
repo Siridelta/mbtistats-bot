@@ -27,34 +27,40 @@ from .config import (
     plugin_config
 )
 from .transform_render_data import transform_to_render_data
+from nonebot.plugin import PluginMetadata
 
 # 导入自动统计模块（会自动注册定时任务）
 from . import auto_stats
 
+__plugin_meta__ = PluginMetadata(
+    name="mbtistats",
+    description="MBTI 群聊统计插件 - 自动识别群名片中的 MBTI 类型并生成统计图表",
+    usage="""本插件可自动统计当前群的 MBTI 类型分布，并生成精美统计图。
+
+需要群友在群名片或 QQ 昵称中主动标注自己的 MBTI 类型才能被统计到。
+
+支持的类型格式：
+  • 标准型：INTP、enfp（全大写/全小写）
+  • 模糊型：INXP、exxp（用 X/x 代替不确定字母）
+  • 扩展型：INTP-T、INTP(5w4)（识别其中的 MBTI 代码）
+  • OPS 型：Te/Se、Ni/Fe（识别优势功能代码）
+
+生成图表：
+  • MBTI 类型分布饼图
+  • 特质维度（E/I, S/N, T/F, J/P）柱状图
+  • 历史趋势折线图（需有历史数据）
+
+指令：
+  /mbti 或 /MBTI - 生成统计图表
+  
+注意：
+  • 仅支持 OneBot V11 协议（QQ 群聊）
+  • 自动统计功能需机器人运行者配置定时任务""",
+    type="application",
+)
+
 # --- 命令定义 ---
 mbti_stats_cmd = on_command("mbti", aliases={"MBTI"}, priority=10, block=True)
-help_cmd = on_command("帮助", aliases={"help"}, rule=to_me(), priority=10, block=True)
-
-@help_cmd.handle()
-async def handle_help(bot: Bot, event: Event, matcher: Matcher):
-    """
-    处理 /帮助 命令
-    """
-    await matcher.send("""
-欢迎使用 MBTI 计数菌！
-本 bot 可自动统计当前群的 MBTI 类型分布，并生成统计图。
-需要群友在群名片或 QQ 昵称中主动声明/标注自己的 MBTI 类型哦~
-支持各种标注类型：MBTI（全大写/全小写），模糊类型（用X/x代替其中的若干字母，如"INXP"，"exxp"），各种扩展型（识别其中的普通 MBTI 代码），OPS 类型（识别其中的优势功能部分代码，如"Te/Se"）。
-支持生成 MBTI 类型分布图、以及 MBTI 特质维度分布图。
-
-使用帮助：
-/mbti：统计当前群的 MBTI 类型分布和特质维度分布，并生成统计图。
-/帮助 (或 /help)：显示这条帮助信息，需要 @bot。
-
-/echo [消息内容]：让 bot 原样复读消息内容，需要 @bot。
-/recall [数量]：撤回最近指定数量的机器人消息，默认为 5 条。
-/timer [时长] [消息内容]：设置一个定时器，指定时间后 bot 会发送一条消息提醒你时间到了。[时长]: 例如 "10s", "5m", "2h"。
-    """.strip())
 
 @mbti_stats_cmd.handle()
 async def handle_mbti_stats(bot: Bot, event: Event, matcher: Matcher):
