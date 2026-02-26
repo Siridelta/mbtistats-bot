@@ -71,7 +71,10 @@ function buildTrendWindows(history) {
     };
 
     if (totalSpan < 7 * DAY_MS) {
-        addWindow('all', '全历史记录图', minTs, maxTs);
+        // 全历史窗口：短时间保持原样，长时间对齐到 0 点
+        const allStart = totalSpan >= DAY_MS ? startOfDay(minTs) : minTs;
+        const allEnd = totalSpan >= DAY_MS ? startOfNextDay(maxTs) : maxTs;
+        addWindow('all', '全历史记录图', allStart, allEnd);
         return windows;
     }
 
@@ -88,7 +91,10 @@ function buildTrendWindows(history) {
         addWindow('year', '一年趋势图', yearStart, end);
     }
 
-    addWindow('all', '全历史记录图', minTs, maxTs);
+    // 全历史窗口：对齐到 0 点（大跨度情况一定 >= 1 天）
+    const allStart = startOfDay(minTs);
+    const allEnd = startOfNextDay(maxTs);
+    addWindow('all', '全历史记录图', allStart, allEnd);
     return windows;
 }
 
@@ -495,7 +501,7 @@ MbtistatsDashboard.prototype.renderTrendCharts = function() {
             grid: { left: '6%', right: '6%', bottom: '12%', top: '7%', containLabel: true },
             xAxis: {
                 type: 'time', min: windowDef.start, max: windowDef.end, boundaryGap: false,
-                axisLabel: { fontSize: 11, formatter: '{yy}.{MM}.{dd}', hideOverlap: true, showMaxLabel: true, showMinLabel: true },
+                axisLabel: { fontSize: 11, hideOverlap: true, showMaxLabel: true, showMinLabel: true },
             },
             yAxis: { type: 'value', name: '人数', axisLabel: { fontSize: 11 }, splitLine: { show: true, lineStyle: { type: 'dashed' } } },
             series: type16Series,
@@ -539,7 +545,7 @@ MbtistatsDashboard.prototype.renderTrendCharts = function() {
             grid: { left: '6%', right: '6%', bottom: '12%', top: '7%', containLabel: true },
             xAxis: {
                 type: 'time', min: windowDef.start, max: windowDef.end, boundaryGap: false,
-                axisLabel: { fontSize: 11, formatter: '{yy}.{MM}.{dd}', hideOverlap: true, showMaxLabel: true, showMinLabel: true },
+                axisLabel: { fontSize: 11, hideOverlap: true, showMaxLabel: true, showMinLabel: true },
             },
             yAxis: { type: 'value', name: '人数', axisLabel: { fontSize: 11 }, splitLine: { show: true, lineStyle: { type: 'dashed' } } },
             series: type4Series,

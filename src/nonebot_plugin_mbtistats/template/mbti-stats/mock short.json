@@ -1,0 +1,196 @@
+[
+  {
+    "timestamp": 1759766700000,
+    "group_name": "MBTI 一同启程",
+    "total_count": 131,
+    "type_data": [
+      {
+        "name": "INTP",
+        "value": 15
+      },
+      {
+        "name": "INTJ",
+        "value": 23
+      },
+      {
+        "name": "ENTP",
+        "value": 12
+      },
+      {
+        "name": "ENTJ",
+        "value": 2
+      },
+      {
+        "name": "INFP",
+        "value": 22
+      },
+      {
+        "name": "INFJ",
+        "value": 10
+      },
+      {
+        "name": "ENFP",
+        "value": 32
+      },
+      {
+        "name": "ENFJ",
+        "value": 3
+      },
+      {
+        "name": "ISTP",
+        "value": 1
+      },
+      {
+        "name": "ISTJ",
+        "value": 2
+      },
+      {
+        "name": "ESTP",
+        "value": 1
+      },
+      {
+        "name": "ESTJ",
+        "value": 1
+      },
+      {
+        "name": "ISFP",
+        "value": 4
+      },
+      {
+        "name": "ISFJ",
+        "value": 2
+      },
+      {
+        "name": "ESFP",
+        "value": 1
+      },
+      {
+        "name": "ESFJ",
+        "value": 0
+      },
+      {
+        "name": "模糊类型",
+        "value": 0
+      }
+    ],
+    "trait_data": {
+      "EI": {
+        "E": 52,
+        "I": 79,
+        "X": 0
+      },
+      "SN": {
+        "S": 12,
+        "N": 119,
+        "X": 0
+      },
+      "TF": {
+        "T": 57,
+        "F": 74,
+        "X": 0
+      },
+      "JP": {
+        "J": 43,
+        "P": 88,
+        "X": 0
+      }
+    }
+  },
+  {
+    "timestamp": 1759767400000,
+    "group_name": "MBTI 一同启程",
+    "total_count": 151,
+    "type_data": [
+      {
+        "name": "INTP",
+        "value": 18
+      },
+      {
+        "name": "INTJ",
+        "value": 28
+      },
+      {
+        "name": "ENTP",
+        "value": 12
+      },
+      {
+        "name": "ENTJ",
+        "value": 3
+      },
+      {
+        "name": "INFP",
+        "value": 27
+      },
+      {
+        "name": "INFJ",
+        "value": 10
+      },
+      {
+        "name": "ENFP",
+        "value": 33
+      },
+      {
+        "name": "ENFJ",
+        "value": 4
+      },
+      {
+        "name": "ISTP",
+        "value": 1
+      },
+      {
+        "name": "ISTJ",
+        "value": 2
+      },
+      {
+        "name": "ESTP",
+        "value": 1
+      },
+      {
+        "name": "ESTJ",
+        "value": 1
+      },
+      {
+        "name": "ISFP",
+        "value": 6
+      },
+      {
+        "name": "ISFJ",
+        "value": 2
+      },
+      {
+        "name": "ESFP",
+        "value": 1
+      },
+      {
+        "name": "ESFJ",
+        "value": 2
+      },
+      {
+        "name": "模糊类型",
+        "value": 0
+      }
+    ],
+    "trait_data": {
+      "EI": {
+        "E": 57,
+        "I": 94,
+        "X": 0
+      },
+      "SN": {
+        "S": 16,
+        "N": 135,
+        "X": 0
+      },
+      "TF": {
+        "T": 66,
+        "F": 85,
+        "X": 0
+      },
+      "JP": {
+        "J": 52,
+        "P": 99,
+        "X": 0
+      }
+    }
+  }
+]
